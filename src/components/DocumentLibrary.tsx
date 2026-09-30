@@ -253,10 +253,10 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                         <FileText className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                         <div>
                           <div className="font-semibold text-slate-900 line-clamp-1 max-w-sm">
-                            {doc.originalName}
+                            {doc.originalName || doc.filename || 'নাম নেই'}
                           </div>
                           <div className="text-[11px] text-slate-400 mt-0.5">
-                            আকার: {formatFileSize(doc.fileSize)} | হ্যাশ: {doc.fileHash ? `${doc.fileHash.slice(0, 10)}...` : 'নেই'}
+                            আকার: {formatFileSize(Number(doc.fileSize || 0))} | হ্যাশ: {doc.fileHash ? `${doc.fileHash.slice(0, 10)}...` : 'নেই'}
                           </div>
                         </div>
                       </div>
@@ -280,7 +280,7 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                     {/* Total Records */}
                     <td className="px-4 py-4">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                        {doc.totalRecords.toLocaleString('bn-BD')} টি
+                        {Number(doc.totalRecords || 0).toLocaleString('bn-BD')} টি
                       </span>
                     </td>
 
