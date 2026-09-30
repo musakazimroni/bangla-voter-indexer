@@ -285,9 +285,26 @@ export async function processPdfDocument(
     return { success: true, totalRecords };
   } catch (error: any) {
     console.error('Error processing PDF:', error);
-    updateDocumentProgress(documentId, doc.processed_pages, doc.total_records, 'failed', 'failed', error.message);
+    // Preserve the latest persisted page/record checkpoint instead of reverting
+    // to the document values captured before processing started.
+    const latest = getDocumentById(documentId);
+    updateDocumentProgress(
+      documentId,
+      latest?.processed_pages || 0,
+      latest?.total_records || 0,
+      'failed',
+      'failed',
+      error.message
+    );
+    await syncDatabase().catch((syncErr) => {
+      console.warn('Persistent failure-state sync failed:', syncErr);
+    });
     activeJobs.delete(documentId);
-    return { success: false, totalRecords: doc.total_records, error: error.message };
+    return {
+      success: false,
+      totalRecords: latest?.total_records || 0,
+      error: error.message
+    };
   }
 }
 
