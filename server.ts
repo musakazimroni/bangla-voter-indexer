@@ -60,22 +60,25 @@ const upload = multer({
 });
 
 /**
- * Strict startup order:
+ * Production-safe startup order:
  * 1. Restore/sync the persistent replica when possible.
  * 2. ALWAYS initialize the local schema.
- * 3. Verify required tables.
- * 4. Sync the newly-created schema to Turso.
- * 5. ONLY THEN seed/sample-write data.
+ * 3. Verify every required table exists locally.
+ * 4. Do NOT run another sync before the first write; that can replace or
+ *    invalidate a freshly-created local schema on an empty/new replica.
+ * 5. Sample data is opt-in only.
+ * 6. Sync after optional seed/write operations so local changes can be
+ *    persisted to Turso.
  */
 async function initializeDatabaseForStartup() {
   await syncDatabase().catch((err) => {
     console.warn('Persistent database initial sync unavailable:', err);
   });
 
-  // This MUST happen before seedSampleVoterData() or any DB insert.
+  // The local schema must exist before ANY DB read/write, including seeding.
   initDatabase();
 
-  const requiredTables = ['documents', 'voters', 'pages', 'voters_fts'];
+  const requiredTables = ['documents', 'drive_sources', 'voters', 'pages', 'voters_fts'];
   const missingTables = requiredTables.filter((table) => {
     const row = db.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
@@ -89,19 +92,7 @@ async function initializeDatabaseForStartup() {
     );
   }
 
-  // Publish the schema only after the local tables definitely exist.
-  await syncDatabase().catch((err) => {
-    console.warn('Persistent database schema sync unavailable:', err);
-  });
-
-  // Final guard immediately before any seed/write operation.
-  const documentsTable = db.prepare(
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'documents'"
-  ).get() as { name?: string } | undefined;
-
-  if (documentsTable?.name !== 'documents') {
-    throw new Error('Database startup aborted: documents table is missing before sample seeding.');
-  }
+  console.log('Database schema verified before application startup.');
 }
 
 async function startServer() {
@@ -111,8 +102,16 @@ async function startServer() {
 
   await initializeDatabaseForStartup();
 
-  // Schema is guaranteed to exist before this function can run.
-  await seedSampleVoterData().catch(console.error);
+  // Sample data is intentionally disabled in production unless explicitly
+  // requested with ENABLE_SAMPLE_DATA=true.
+  if (process.env.ENABLE_SAMPLE_DATA === 'true') {
+    await seedSampleVoterData();
+    await syncDatabase().catch((err) => {
+      console.warn('Persistent database sync after sample seed unavailable:', err);
+    });
+  } else {
+    console.log('Sample data seeding is disabled (set ENABLE_SAMPLE_DATA=true to enable).');
+  }
 
   app.get('/api/health', (req, res) => {
     res.json({
