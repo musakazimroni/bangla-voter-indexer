@@ -23,6 +23,8 @@ interface IndexDashboardProps {
 export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefreshStats }) => {
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedNotice, setSeedNotice] = useState<string | null>(null);
+  const [isDriveSyncing, setIsDriveSyncing] = useState(false);
+  const [driveNotice, setDriveNotice] = useState<string | null>(null);
 
   const handleSeedSamples = async () => {
     setIsSeeding(true);
@@ -36,6 +38,24 @@ export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefresh
       setSeedNotice('নমুনা ডেটা লোড করতে সমস্যা হয়েছে।');
     } finally {
       setIsSeeding(false);
+    }
+  };
+
+  const handleDriveSync = async () => {
+    setIsDriveSyncing(true);
+    setDriveNotice(null);
+    try {
+      const res = await fetch('/api/drive/sync', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Google Drive সিংক ব্যর্থ হয়েছে।');
+      }
+      setDriveNotice(data.message || 'Google Drive সিংক সম্পন্ন হয়েছে।');
+      onRefreshStats();
+    } catch (err: any) {
+      setDriveNotice(err?.message || 'Google Drive সিংক শুরু করতে সমস্যা হয়েছে।');
+    } finally {
+      setIsDriveSyncing(false);
     }
   };
 
@@ -166,6 +186,13 @@ export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefresh
               যশোর সদর উপজেলার তেঘরিয়া ও হাকিমপুরের নমুনা ভোটার তালিকা পিডিএফ এবং সিন্থেটিক ডেটাসেট পুনরায় লোড করুন।
             </p>
 
+            {driveNotice && (
+              <div className={`mb-3 p-3 rounded-xl border text-xs flex items-center space-x-2 ${isDriveSyncing ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                <RefreshCw className={`w-4 h-4 shrink-0 ${isDriveSyncing ? 'animate-spin text-blue-600' : 'text-emerald-600'}`} />
+                <span>{driveNotice}</span>
+              </div>
+            )}
+
             {seedNotice && (
               <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -191,10 +218,19 @@ export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefresh
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch gap-3">
+            <button
+              onClick={handleDriveSync}
+              disabled={isDriveSyncing}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <HardDrive className={`w-4 h-4 ${isDriveSyncing ? 'animate-pulse' : ''}`} />
+              <span>{isDriveSyncing ? 'Google Drive সিংক চলছে...' : 'গুগল ড্রাইভ সিংক শুরু করুন'}</span>
+            </button>
+
             <button
               onClick={handleSeedSamples}
-              disabled={isSeeding}
+              disabled={isSeeding || isDriveSyncing}
               className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors flex items-center justify-center space-x-1.5 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isSeeding ? 'animate-spin text-emerald-600' : ''}`} />
