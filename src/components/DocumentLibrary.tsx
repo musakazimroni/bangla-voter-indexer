@@ -256,7 +256,7 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                             {doc.originalName}
                           </div>
                           <div className="text-[11px] text-slate-400 mt-0.5">
-                            আকার: {formatFileSize(doc.fileSize)} | হ্যাশ: {doc.fileHash.slice(0, 10)}...
+                            আকার: {formatFileSize(doc.fileSize)} | হ্যাশ: {doc.fileHash ? `${doc.fileHash.slice(0, 10)}...` : 'নেই'}
                           </div>
                         </div>
                       </div>
