@@ -111,7 +111,7 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
     existingSource.modified_time === (file.modifiedTime || '') &&
     Number(existingSource.file_size || 0) === Number(file.size || 0);
 
-  if (sameVersion && existingSource?.document_id) {
+  if (sameVersion && existingSource?.document_id && existingSource.status === 'indexed') {
     return { action: 'skipped', documentId: existingSource.document_id };
   }
 
@@ -237,6 +237,12 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
 
 let syncRunning = false;
 let lastSyncError = '';
+let lastDiscovered = { male: 0, female: 0 };
+
+const DRIVE_SYNC_BATCH_SIZE = Math.max(
+  1,
+  Number(process.env.DRIVE_SYNC_BATCH_SIZE || 10)
+);
 
 export async function syncGoogleDriveFolders() {
   if (!isDriveSyncConfigured()) {
@@ -260,26 +266,41 @@ export async function syncGoogleDriveFolders() {
       listPublicFolderPdfs(FEMALE_FOLDER_ID)
     ]);
 
+    lastDiscovered = { male: maleFiles.length, female: femaleFiles.length };
+
     let indexed = 0;
     let skipped = 0;
     let duplicates = 0;
     let failed = 0;
+    let attempted = 0;
 
-    // Process one PDF at a time to avoid exhausting Render memory/CPU.
-    for (const file of maleFiles) {
-      const result = await indexDriveFile(file, 'male', MALE_FOLDER_ID);
+    // Process a small batch per run. This makes a 1,600+ PDF library resumable
+    // and prevents one Render instance from trying to OCR everything at once.
+    const candidates = [
+      ...maleFiles.map((file) => ({ file, sourceType: 'male' as const, folderId: MALE_FOLDER_ID })),
+      ...femaleFiles.map((file) => ({ file, sourceType: 'female' as const, folderId: FEMALE_FOLDER_ID }))
+    ].filter(({ file, sourceType, folderId }) => {
+      const source = getDriveSourceByFileId(file.id);
+      return !source ||
+        source.status !== 'indexed' ||
+        source.modified_time !== (file.modifiedTime || '') ||
+        Number(source.file_size || 0) !== Number(file.size || 0);
+    }).slice(0, DRIVE_SYNC_BATCH_SIZE);
+
+    for (const { file, sourceType, folderId } of candidates) {
+      attempted++;
+      const result = await indexDriveFile(file, sourceType, folderId);
       if (result.action === 'indexed') indexed++;
       else if (result.action === 'skipped') skipped++;
       else if (result.action === 'duplicate') duplicates++;
       else failed++;
     }
-    for (const file of femaleFiles) {
-      const result = await indexDriveFile(file, 'female', FEMALE_FOLDER_ID);
-      if (result.action === 'indexed') indexed++;
-      else if (result.action === 'skipped') skipped++;
-      else if (result.action === 'duplicate') duplicates++;
-      else failed++;
-    }
+    // Persist progress after each completed candidate. The local database is
+    // disposable on Render, so this minimizes the amount of indexing work that
+    // could be lost by a restart.
+    await (await import('./db.ts')).syncDatabase().catch((err) => {
+      console.warn('Database sync after Drive batch failed:', err);
+    });
 
     return {
       configured: true,
@@ -289,6 +310,8 @@ export async function syncGoogleDriveFolders() {
       discovered: maleFiles.length + femaleFiles.length,
       maleFiles: maleFiles.length,
       femaleFiles: femaleFiles.length,
+      batchSize: DRIVE_SYNC_BATCH_SIZE,
+      attempted,
       indexed,
       skipped,
       duplicates,
@@ -315,7 +338,8 @@ export function getDriveSyncStatus() {
     lastError: lastSyncError || null,
     maleFolderId: MALE_FOLDER_ID,
     femaleFolderId: FEMALE_FOLDER_ID,
-    ...getDriveSyncStats()
+    ...getDriveSyncStats(),
+    lastDiscovered
   };
 }
 
