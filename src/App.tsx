@@ -79,8 +79,8 @@ export default function App() {
   const fetchMetadata = useCallback(async () => {
     try {
       const [docsRes, statsRes] = await Promise.all([
-        fetch('/api/documents'),
-        fetch('/api/stats')
+        fetch('https://bangla-voter-indexer.onrender.com/api/documents'),
+        fetch('https://bangla-voter-indexer.onrender.com/api/stats')
       ]);
       if (docsRes.ok) {
         const docsData = await docsRes.json();
@@ -121,7 +121,7 @@ export default function App() {
       if (f.page) queryParams.set('page', f.page.toString());
       if (f.limit) queryParams.set('limit', f.limit.toString());
 
-      const res = await fetch(`/api/search?${queryParams.toString()}`);
+      const res = await fetch(`https://bangla-voter-indexer.onrender.com/api/search?${queryParams.toString()}`);
       const data = await res.json();
 
       setResults(data.results || []);
@@ -214,7 +214,7 @@ export default function App() {
               {totalResults > 0 && (
                 <div className="flex items-center space-x-2">
                   <a
-                    href={`/api/export/csv?${new URLSearchParams({
+                    href={`https://bangla-voter-indexer.onrender.com/api/export/csv?${new URLSearchParams({
                       name: filters.name || '',
                       fatherName: filters.fatherName || '',
                       motherName: filters.motherName || '',
