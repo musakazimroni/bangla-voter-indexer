@@ -30,6 +30,7 @@ import {
   syncGoogleDriveFolders,
   streamDriveFile
 } from './server/googleDriveSync.ts';
+import { syncDatabase, isPersistentDatabaseConfigured } from './server/db.ts';
 
 const PORT = 3000;
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
@@ -69,7 +70,20 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   // Initialize DB and sample attached data
+  // Restore the persistent remote index before creating/using local tables.
+  // On a fresh Render instance this pulls the existing database; on a brand-new
+  // database the subsequent schema initialization creates the tables and the
+  // second sync publishes them.
+  await syncDatabase().catch((err) => {
+    console.warn('Persistent database initial sync unavailable:', err);
+  });
+
   initDatabase();
+
+  await syncDatabase().catch((err) => {
+    console.warn('Persistent database schema sync unavailable:', err);
+  });
+
   await seedSampleVoterData().catch(console.error);
 
   // Health check
@@ -464,6 +478,16 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
+
+    if (isPersistentDatabaseConfigured()) {
+      // Keep the remote copy current without making every individual INSERT
+      // wait on the network. Writes remain local and are periodically synced.
+      setInterval(() => {
+        syncDatabase().catch((err) => {
+          console.error('Persistent database sync failed:', err);
+        });
+      }, 30 * 1000);
+    }
 
     if (process.env.GOOGLE_DRIVE_API_KEY) {
       setTimeout(() => {
