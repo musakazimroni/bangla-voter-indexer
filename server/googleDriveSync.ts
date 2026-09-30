@@ -10,7 +10,8 @@ import {
   deleteDocument,
   upsertDriveSource,
   getDriveSourceByFileId,
-  getDriveSyncStats
+  getDriveSyncStats,
+  syncDatabase
 } from './db.ts';
 import { processPdfDocument, calculateFileHash } from './pdfProcessor.ts';
 
@@ -115,8 +116,21 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
     return { action: 'skipped', documentId: existingSource.document_id };
   }
 
-  // If the Drive file changed, remove its old local index before rebuilding it.
-  if (existingSource?.document_id && getDocumentById(existingSource.document_id)) {
+  const existingDocument = existingSource?.document_id
+    ? getDocumentById(existingSource.document_id)
+    : undefined;
+
+  // Only destroy the old index when Drive reports a new file version.
+  // Failed/interrupted indexing of the same version must resume from the
+  // persisted page checkpoint instead of starting from page 1 again.
+  const versionChanged =
+    Boolean(existingSource) &&
+    (
+      existingSource?.modified_time !== (file.modifiedTime || '') ||
+      Number(existingSource?.file_size || 0) !== Number(file.size || 0)
+    );
+
+  if (versionChanged && existingSource?.document_id && existingDocument) {
     deleteDocument(existingSource.document_id);
   }
 
@@ -144,29 +158,52 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
       return { action: 'duplicate', documentId: duplicate.id };
     }
 
-    const documentId = `drive_${sourceType}_${file.id}`;
+    const documentId = existingDocument && !versionChanged
+      ? existingDocument.id
+      : `drive_${sourceType}_${file.id}`;
     const now = new Date().toISOString();
-    saveDocument({
-      id: documentId,
-      filename: path.basename(localPath),
-      original_name: file.name,
-      file_path: localPath,
-      file_hash: fileHash,
-      file_size: Number(file.size || fs.statSync(localPath).size),
-      page_count: 0,
-      processed_pages: 0,
-      status: 'pending',
-      ocr_status: 'in_progress',
-      total_records: 0,
-      district: '',
-      upazila: '',
-      union_name: '',
-      ward: '',
-      voter_area: '',
-      voter_area_code: '',
-      created_at: now,
-      updated_at: now
-    });
+
+    if (existingDocument && !versionChanged) {
+      // Reuse the existing document/checkpoint and only refresh its temporary
+      // local PDF path/hash. The old voters/pages remain intact so OCR resumes
+      // at existingDocument.processed_pages.
+      saveDocument({
+        ...existingDocument,
+        filename: path.basename(localPath),
+        original_name: file.name,
+        file_path: localPath,
+        file_hash: fileHash,
+        file_size: Number(file.size || fs.statSync(localPath).size),
+        status: 'processing',
+        ocr_status: existingDocument.ocr_status === 'completed'
+          ? 'completed'
+          : 'in_progress',
+        error_message: '',
+        updated_at: now
+      });
+    } else {
+      saveDocument({
+        id: documentId,
+        filename: path.basename(localPath),
+        original_name: file.name,
+        file_path: localPath,
+        file_hash: fileHash,
+        file_size: Number(file.size || fs.statSync(localPath).size),
+        page_count: 0,
+        processed_pages: 0,
+        status: 'pending',
+        ocr_status: 'in_progress',
+        total_records: 0,
+        district: '',
+        upazila: '',
+        union_name: '',
+        ward: '',
+        voter_area: '',
+        voter_area_code: '',
+        created_at: now,
+        updated_at: now
+      });
+    }
 
     upsertDriveSource({
       drive_file_id: file.id,
@@ -180,6 +217,13 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
       status: 'processing',
       error_message: '',
       updated_at: now
+    });
+
+    // Persist the document/source checkpoint BEFORE OCR starts. If Render
+    // restarts during a long scanned PDF, the next Drive sync can recover the
+    // document and resume from its last persisted page.
+    await syncDatabase().catch((err) => {
+      console.warn('Database sync before Drive PDF processing failed:', err);
     });
 
     try {
