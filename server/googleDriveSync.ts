@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
 import {
   db,
   getDocumentById,
@@ -88,8 +89,8 @@ async function downloadDriveFile(file: DriveFile, destination: string) {
 
   await new Promise<void>((resolve, reject) => {
     const stream = fs.createWriteStream(destination);
-    // @ts-ignore Node's fetch WebStream can be converted to a Node stream.
-    const nodeStream = require('node:stream').Readable.fromWeb(response.body);
+    // Convert Node fetch's WebStream into a writable Node stream.
+    const nodeStream = Readable.fromWeb(response.body as any);
     nodeStream.pipe(stream);
     nodeStream.on('error', reject);
     stream.on('finish', () => resolve());
@@ -334,7 +335,6 @@ export async function streamDriveFile(
   res.status(200);
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Accept-Ranges', 'none');
-  // @ts-ignore
-  const nodeStream = require('node:stream').Readable.fromWeb(response.body);
+  const nodeStream = Readable.fromWeb(response.body as any);
   nodeStream.pipe(res);
 }
