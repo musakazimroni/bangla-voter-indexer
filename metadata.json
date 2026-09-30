@@ -1,0 +1,6 @@
+{
+  "name": "বাংলা ভোটার লিস্ট সার্চ",
+  "description": "হাজার হাজার PDF ফাইলের মধ্যে নাম, জন্মতারিখ, বাবার নাম বা মায়ের নাম দিয়ে দ্রুত খুঁজুন। Real-time Bengali voter list PDF indexer and search engine with Bengali OCR, Unicode normalization, and exact page navigation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
