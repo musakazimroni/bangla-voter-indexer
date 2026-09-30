@@ -88,7 +88,11 @@ async function startServer() {
 
   // Health check
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString() });
+    res.json({
+      status: 'ok',
+      time: new Date().toISOString(),
+      persistentDatabase: isPersistentDatabaseConfigured()
+    });
   });
 
   // Index Dashboard Statistics
