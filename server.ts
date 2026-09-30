@@ -25,6 +25,11 @@ import {
   getJobStatus
 } from './server/pdfProcessor.ts';
 import { seedSampleVoterData } from './server/sampleData.ts';
+import {
+  getDriveSyncStatus,
+  syncGoogleDriveFolders,
+  streamDriveFile
+} from './server/googleDriveSync.ts';
 
 const PORT = 3000;
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
@@ -77,6 +82,21 @@ async function startServer() {
     try {
       const stats = getIndexStats();
       res.json(stats);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Google Drive indexing status
+  app.get('/api/drive/status', (req, res) => {
+    res.json(getDriveSyncStatus());
+  });
+
+  // Manually start an incremental sync of the two public Google Drive folders.
+  app.post('/api/drive/sync', async (req, res) => {
+    try {
+      const result = await syncGoogleDriveFolders();
+      res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -248,32 +268,35 @@ async function startServer() {
     }
   });
 
-  // Serve original PDF file for preview / download
-  app.get('/api/documents/:id/pdf', (req, res) => {
+  // Serve original PDF. Drive-indexed files are streamed from Google Drive
+  // when their temporary local copy has already been removed.
+  app.get('/api/documents/:id/pdf', async (req, res) => {
     try {
       const { id } = req.params;
       const doc = getDocumentById(id);
-      if (!doc || !fs.existsSync(doc.file_path)) {
-        return res.status(404).json({ error: 'PDF ফাইল পাওয়া যায়নি।' });
+      if (!doc) return res.status(404).json({ error: 'PDF ফাইল পাওয়া যায়নি।' });
+
+      if (!fs.existsSync(doc.file_path)) {
+        const { getDriveSourceByDocumentId } = await import('./server/db.ts');
+        const source = getDriveSourceByDocumentId(id);
+        if (!source) return res.status(404).json({ error: 'PDF ফাইলের উৎস পাওয়া যায়নি।' });
+        await streamDriveFile(source.drive_file_id, source.resource_key, res);
+        return;
       }
 
       const stat = fs.statSync(doc.file_path);
       const total = stat.size;
 
-      // Enable Range header for PDF streaming and fast jump to page
       if (req.headers.range) {
         const range = req.headers.range;
         const parts = range.replace(/bytes=/, '').split('-');
-        const partialstart = parts[0];
-        const partialend = parts[1];
+        const startByte = parseInt(parts[0], 10);
+        const endByte = parts[1] ? parseInt(parts[1], 10) : total - 1;
+        const chunksize = endByte - startByte + 1;
+        const file = fs.createReadStream(doc.file_path, { start: startByte, end: endByte });
 
-        const start = parseInt(partialstart, 10);
-        const end = partialend ? parseInt(partialend, 10) : total - 1;
-        const chunksize = end - start + 1;
-
-        const file = fs.createReadStream(doc.file_path, { start, end });
         res.writeHead(206, {
-          'Content-Range': `bytes ${start}-${end}/${total}`,
+          'Content-Range': `bytes ${startByte}-${endByte}/${total}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': chunksize,
           'Content-Type': 'application/pdf',
@@ -290,7 +313,8 @@ async function startServer() {
         fs.createReadStream(doc.file_path).pipe(res);
       }
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error('PDF streaming error:', err);
+      if (!res.headersSent) res.status(500).json({ error: err.message });
     }
   });
 
@@ -440,6 +464,20 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
+
+    if (process.env.GOOGLE_DRIVE_API_KEY) {
+      setTimeout(() => {
+        syncGoogleDriveFolders().catch((err) => {
+          console.error('Initial Google Drive sync failed:', err);
+        });
+      }, 5000);
+
+      setInterval(() => {
+        syncGoogleDriveFolders().catch((err) => {
+          console.error('Scheduled Google Drive sync failed:', err);
+        });
+      }, 6 * 60 * 60 * 1000);
+    }
   });
 }
 
