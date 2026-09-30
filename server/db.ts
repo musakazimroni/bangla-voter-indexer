@@ -49,6 +49,23 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_docs_hash ON documents(file_hash);
     CREATE INDEX IF NOT EXISTS idx_docs_status ON documents(status);
 
+    CREATE TABLE IF NOT EXISTS drive_sources (
+      drive_file_id TEXT PRIMARY KEY,
+      source_type TEXT NOT NULL,
+      folder_id TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      modified_time TEXT,
+      file_size INTEGER DEFAULT 0,
+      resource_key TEXT,
+      document_id TEXT,
+      status TEXT NOT NULL,
+      error_message TEXT,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_drive_sources_document ON drive_sources(document_id);
+    CREATE INDEX IF NOT EXISTS idx_drive_sources_type ON drive_sources(source_type);
+
     CREATE TABLE IF NOT EXISTS pages (
       id TEXT PRIMARY KEY,
       document_id TEXT NOT NULL,
@@ -402,5 +419,68 @@ export function getIndexStats() {
     totalRecords: Number(votersCountRow.count || 0),
     databaseSizeBytes: dbSize,
     lastIndexedAt: (docsRow.lastIndexedAt as string) || null,
+  };
+}
+
+
+export interface DbDriveSource {
+  drive_file_id: string;
+  source_type: 'male' | 'female';
+  folder_id: string;
+  file_name: string;
+  modified_time: string;
+  file_size: number;
+  resource_key: string;
+  document_id: string;
+  status: 'processing' | 'indexed' | 'failed';
+  error_message: string;
+  updated_at: string;
+}
+
+export function getDriveSourceByFileId(fileId: string): DbDriveSource | null {
+  const row = db.prepare('SELECT * FROM drive_sources WHERE drive_file_id = ?').get(fileId) as unknown as DbDriveSource | undefined;
+  return row || null;
+}
+
+export function getDriveSourceByDocumentId(documentId: string): DbDriveSource | null {
+  const row = db.prepare('SELECT * FROM drive_sources WHERE document_id = ?').get(documentId) as unknown as DbDriveSource | undefined;
+  return row || null;
+}
+
+export function upsertDriveSource(source: DbDriveSource) {
+  db.prepare(`
+    INSERT OR REPLACE INTO drive_sources (
+      drive_file_id, source_type, folder_id, file_name, modified_time,
+      file_size, resource_key, document_id, status, error_message, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    source.drive_file_id,
+    source.source_type,
+    source.folder_id,
+    source.file_name,
+    source.modified_time || '',
+    Number(source.file_size || 0),
+    source.resource_key || '',
+    source.document_id || '',
+    source.status,
+    source.error_message || '',
+    source.updated_at
+  );
+}
+
+export function getDriveSyncStats() {
+  const total = db.prepare('SELECT COUNT(*) as count FROM drive_sources').get() as { count: number };
+  const male = db.prepare("SELECT COUNT(*) as count FROM drive_sources WHERE source_type = 'male'").get() as { count: number };
+  const female = db.prepare("SELECT COUNT(*) as count FROM drive_sources WHERE source_type = 'female'").get() as { count: number };
+  const indexed = db.prepare("SELECT COUNT(*) as count FROM drive_sources WHERE status = 'indexed'").get() as { count: number };
+  const failed = db.prepare("SELECT COUNT(*) as count FROM drive_sources WHERE status = 'failed'").get() as { count: number };
+  const lastSync = db.prepare('SELECT MAX(updated_at) as value FROM drive_sources').get() as { value?: string };
+  return {
+    driveTotal: Number(total.count || 0),
+    driveMale: Number(male.count || 0),
+    driveFemale: Number(female.count || 0),
+    driveIndexed: Number(indexed.count || 0),
+    driveFailed: Number(failed.count || 0),
+    driveLastUpdatedAt: lastSync.value || null
   };
 }
