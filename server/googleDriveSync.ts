@@ -241,7 +241,7 @@ let lastDiscovered = { male: 0, female: 0 };
 
 const DRIVE_SYNC_BATCH_SIZE = Math.max(
   1,
-  Number(process.env.DRIVE_SYNC_BATCH_SIZE || 10)
+  Number(process.env.DRIVE_SYNC_BATCH_SIZE || 2)
 );
 
 export async function syncGoogleDriveFolders() {
@@ -276,16 +276,38 @@ export async function syncGoogleDriveFolders() {
 
     // Process a small batch per run. This makes a 1,600+ PDF library resumable
     // and prevents one Render instance from trying to OCR everything at once.
-    const candidates = [
-      ...maleFiles.map((file) => ({ file, sourceType: 'male' as const, folderId: MALE_FOLDER_ID })),
-      ...femaleFiles.map((file) => ({ file, sourceType: 'female' as const, folderId: FEMALE_FOLDER_ID }))
-    ].filter(({ file, sourceType, folderId }) => {
-      const source = getDriveSourceByFileId(file.id);
-      return !source ||
-        source.status !== 'indexed' ||
-        source.modified_time !== (file.modifiedTime || '') ||
-        Number(source.file_size || 0) !== Number(file.size || 0);
-    }).slice(0, DRIVE_SYNC_BATCH_SIZE);
+    const maleCandidates = maleFiles
+      .map((file) => ({ file, sourceType: 'male' as const, folderId: MALE_FOLDER_ID }))
+      .filter(({ file }) => {
+        const source = getDriveSourceByFileId(file.id);
+        return !source ||
+          source.status !== 'indexed' ||
+          source.modified_time !== (file.modifiedTime || '') ||
+          Number(source.file_size || 0) !== Number(file.size || 0);
+      });
+
+    const femaleCandidates = femaleFiles
+      .map((file) => ({ file, sourceType: 'female' as const, folderId: FEMALE_FOLDER_ID }))
+      .filter(({ file }) => {
+        const source = getDriveSourceByFileId(file.id);
+        return !source ||
+          source.status !== 'indexed' ||
+          source.modified_time !== (file.modifiedTime || '') ||
+          Number(source.file_size || 0) !== Number(file.size || 0);
+      });
+
+    // Alternate male/female candidates so one large folder cannot starve the other.
+    const candidates: Array<{
+      file: DriveFile;
+      sourceType: 'male' | 'female';
+      folderId: string;
+    }> = [];
+
+    while (candidates.length < DRIVE_SYNC_BATCH_SIZE && (maleCandidates.length || femaleCandidates.length)) {
+      if (maleCandidates.length) candidates.push(maleCandidates.shift()!);
+      if (candidates.length >= DRIVE_SYNC_BATCH_SIZE) break;
+      if (femaleCandidates.length) candidates.push(femaleCandidates.shift()!);
+    }
 
     for (const { file, sourceType, folderId } of candidates) {
       attempted++;
@@ -294,13 +316,13 @@ export async function syncGoogleDriveFolders() {
       else if (result.action === 'skipped') skipped++;
       else if (result.action === 'duplicate') duplicates++;
       else failed++;
+
+      // Persist after every PDF. If Render restarts during the next PDF,
+      // everything completed before the restart is already in Turso.
+      await (await import('./db.ts')).syncDatabase().catch((err) => {
+        console.warn('Database sync after Drive candidate failed:', err);
+      });
     }
-    // Persist progress after each completed candidate. The local database is
-    // disposable on Render, so this minimizes the amount of indexing work that
-    // could be lost by a restart.
-    await (await import('./db.ts')).syncDatabase().catch((err) => {
-      console.warn('Database sync after Drive batch failed:', err);
-    });
 
     return {
       configured: true,
