@@ -285,7 +285,7 @@ let lastDiscovered = { male: 0, female: 0 };
 
 const DRIVE_SYNC_BATCH_SIZE = Math.max(
   1,
-  Number(process.env.DRIVE_SYNC_BATCH_SIZE || 2)
+  Number(process.env.DRIVE_SYNC_BATCH_SIZE || 1)
 );
 
 export async function syncGoogleDriveFolders() {
