@@ -14,6 +14,8 @@ import {
 } from './db.ts';
 import { extractDocumentHeader, parseVoterRecordsFromPage, DocumentHeaderInfo } from './voterParser.ts';
 import { createWorker } from 'tesseract.js';
+import { createCanvas } from '@napi-rs/canvas';
+import { syncDatabase } from './db.ts';
 
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -29,6 +31,51 @@ export interface ProcessingJob {
 }
 
 const activeJobs = new Map<string, ProcessingJob>();
+
+const OCR_RENDER_SCALE = Math.max(
+  1,
+  Math.min(2.5, Number(process.env.OCR_RENDER_SCALE || 1.5))
+);
+
+async function renderPdfPageToPng(page: any): Promise<Buffer> {
+  const viewport = page.getViewport({ scale: OCR_RENDER_SCALE });
+  const width = Math.ceil(viewport.width);
+  const height = Math.ceil(viewport.height);
+  const canvas = createCanvas(width, height);
+  const context = canvas.getContext('2d');
+
+  try {
+    await page.render({
+      canvasContext: context as any,
+      viewport,
+      canvasFactory: {
+        create: () => ({ canvas, context }),
+        reset: () => {},
+        destroy: () => {}
+      }
+    }).promise;
+
+    return canvas.toBuffer('image/png');
+  } finally {
+    // Release references promptly; only one rendered page is kept in memory.
+    canvas.width = 1;
+    canvas.height = 1;
+  }
+}
+
+async function recognizeScannedPage(
+  page: any,
+  worker: any
+): Promise<{ text: string; confidence: number }> {
+  const image = await renderPdfPageToPng(page);
+  const result = await worker.recognize(image);
+  const text = String(result?.data?.text || '').trim();
+  const confidence = Number(result?.data?.confidence);
+  return {
+    text,
+    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence / 100)) : 0
+  };
+}
 
 /**
  * Calculate SHA-256 checksum of a file
@@ -103,6 +150,8 @@ export async function processPdfDocument(
 
     // Lazy OCR worker
     let tesseractWorker: any = null;
+    let documentUsedOcr = false;
+    let documentOcrConfidence = 1.0;
 
     // Load pdfjs for text extraction
     // @ts-ignore
@@ -136,15 +185,23 @@ export async function processPdfDocument(
 
       if (isScanned) {
         ocrUsed = true;
-        // Run OCR if worker is available
         try {
           if (!tesseractWorker) {
-            tesseractWorker = await createWorker('ben');
+            tesseractWorker = await createWorker('ben', 1);
           }
-          // Note: In Node environment, if rendering image is needed, fallback to text or sample representation
-          ocrConfidence = 0.88;
+
+          const ocrResult = await recognizeScannedPage(page, tesseractWorker);
+          if (ocrResult.text.length >= 10) {
+            extractedText = ocrResult.text;
+            ocrConfidence = ocrResult.confidence;
+            documentUsedOcr = true;
+            documentOcrConfidence = Math.min(documentOcrConfidence, ocrConfidence);
+          } else {
+            ocrConfidence = 0;
+          }
         } catch (ocrErr) {
-          console.warn(`OCR fallback warning on page ${pageNum}:`, ocrErr);
+          ocrConfidence = 0;
+          console.warn(`OCR failed on page ${pageNum}:`, ocrErr);
         }
       }
 
@@ -195,8 +252,13 @@ export async function processPdfDocument(
           processedPages,
           totalRecords,
           processedPages === pageCount ? 'completed' : 'processing',
-          ocrUsed ? 'completed' : 'not_needed'
+          documentUsedOcr ? 'completed' : 'not_needed'
         );
+        // Push page-level progress to Turso so a Render restart can resume
+        // from the last persisted page instead of losing the whole document.
+        await syncDatabase().catch((err) => {
+          console.warn('Persistent progress sync failed:', err);
+        });
       }
 
       if (onProgress) {
@@ -213,8 +275,11 @@ export async function processPdfDocument(
       pageCount,
       totalRecords,
       'completed',
-      'completed'
+      documentUsedOcr ? 'completed' : 'not_needed'
     );
+    await syncDatabase().catch((err) => {
+      console.warn('Final persistent database sync failed:', err);
+    });
 
     activeJobs.delete(documentId);
     return { success: true, totalRecords };
