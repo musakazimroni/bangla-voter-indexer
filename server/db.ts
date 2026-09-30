@@ -18,9 +18,69 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL || '';
 const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN || '';
 
+/**
+ * libSQL embedded replicas require the local DB file and its companion
+ * "<db>-info" metadata file to exist as a pair. Render can retain an old
+ * plain SQLite DB (or a partially-created replica) across restarts, which
+ * causes SyncInvalidLocalState before libSQL can bootstrap from Turso.
+ *
+ * We do NOT blindly delete the database. If the pair is inconsistent, move
+ * the stale local files into a quarantine directory and let libSQL create a
+ * fresh replica from Turso. This keeps the old bytes available for recovery
+ * while ensuring startup can proceed safely.
+ */
+function repairPersistentReplicaState(): void {
+  if (!TURSO_DATABASE_URL || !TURSO_AUTH_TOKEN) return;
+
+  const metadataPath = `${DB_PATH}-info`;
+  const dbExists = fs.existsSync(DB_PATH);
+  const metadataExists = fs.existsSync(metadataPath);
+
+  if (dbExists === metadataExists) return;
+
+  const quarantineDir = path.join(DATA_DIR, 'replica-quarantine');
+  fs.mkdirSync(quarantineDir, { recursive: true });
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+  const pathsToMove = [
+    DB_PATH,
+    `${DB_PATH}-wal`,
+    `${DB_PATH}-shm`,
+    metadataPath
+  ].filter((filePath) => fs.existsSync(filePath));
+
+  console.warn(
+    `[libsql] Inconsistent local replica detected (db=${dbExists}, metadata=${metadataExists}). ` +
+    `Quarantining ${pathsToMove.length} stale file(s) before Turso bootstrap.`
+  );
+
+  for (const sourcePath of pathsToMove) {
+    const targetPath = path.join(
+      quarantineDir,
+      `${path.basename(sourcePath)}.${stamp}`
+    );
+
+    try {
+      fs.renameSync(sourcePath, targetPath);
+      console.warn(`[libsql] Quarantined: ${sourcePath} -> ${targetPath}`);
+    } catch (err) {
+      throw new Error(
+        `Could not quarantine stale libSQL replica file "${sourcePath}": ${String(err)}`
+      );
+    }
+  }
+}
+
+
 const dbOptions = TURSO_DATABASE_URL
   ? { syncUrl: TURSO_DATABASE_URL, authToken: TURSO_AUTH_TOKEN }
   : undefined;
+
+// Repair only an inconsistent embedded-replica state before opening the DB.
+// A healthy pair is preserved; an inconsistent pair is quarantined so libSQL
+// can bootstrap a clean replica from Turso.
+repairPersistentReplicaState();
 
 // libSQL keeps the same synchronous SQLite-style prepare/get/all/run API used by
 // the existing application, while optionally maintaining an embedded replica of
