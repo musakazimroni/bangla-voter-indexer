@@ -125,8 +125,8 @@ export async function syncDatabase(): Promise<void> {
 }
 
 // Initialize tables and indexes
-export function initDatabase() {
-  db.exec(`
+const SCHEMA_SQL = `
+
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = NORMAL;
 
@@ -239,7 +239,39 @@ export function initDatabase() {
       norm_address,
       norm_all
     );
-  `);
+`;
+
+export function initDatabase() {
+  db.exec(SCHEMA_SQL);
+}
+
+function hasRequiredSchema(): boolean {
+  const requiredTables = ['documents', 'drive_sources', 'voters', 'pages', 'voters_fts'];
+  return requiredTables.every((table) => {
+    const row = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
+    ).get(table) as { name?: string } | undefined;
+    return row?.name === table;
+  });
+}
+
+/**
+ * Ensure the local replica is usable before an API handler touches it.
+ * If a sync is currently running, wait for it first. If the schema is missing,
+ * recreate it locally and immediately persist that schema to Turso.
+ */
+export async function ensureDatabaseReady(): Promise<void> {
+  if (syncInFlight) {
+    await syncInFlight;
+  }
+
+  if (!hasRequiredSchema()) {
+    initDatabase();
+    if (isPersistentDatabaseConfigured()) {
+      await syncDatabase();
+      initDatabase();
+    }
+  }
 }
 
 export interface DbDocument {
