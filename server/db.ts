@@ -107,6 +107,16 @@ export async function syncDatabase(): Promise<void> {
     try {
       await (db as any).sync();
     } finally {
+      // libSQL embedded-replica sync can replace/reconcile the local SQLite
+      // schema with the remote state. Re-assert the local application schema
+      // immediately after every sync so API requests can never race with a
+      // missing `documents` (or related) table.
+      try {
+        initDatabase();
+      } catch (schemaErr) {
+        console.error('[libsql] Failed to re-assert local schema after sync:', schemaErr);
+        throw schemaErr;
+      }
       syncInFlight = null;
     }
   })();
