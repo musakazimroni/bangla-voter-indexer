@@ -5,6 +5,7 @@ import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import {
   initDatabase,
+  ensureDatabaseReady,
   getAllDocuments,
   getDocumentById,
   findDocumentByHash,
@@ -71,11 +72,16 @@ const upload = multer({
  *    persisted to Turso.
  */
 async function initializeDatabaseForStartup() {
+  // Create the schema locally BEFORE the first replica sync. This matters when
+  // the Turso database is new/empty: the schema must become part of the
+  // persistent database, not remain only in Render's disposable filesystem.
+  initDatabase();
+
   await syncDatabase().catch((err) => {
     console.warn('Persistent database initial sync unavailable:', err);
   });
 
-  // The local schema must exist before ANY DB read/write, including seeding.
+  // Re-assert in case the initial sync reconciled an older/empty remote state.
   initDatabase();
 
   const requiredTables = ['documents', 'drive_sources', 'voters', 'pages', 'voters_fts'];
@@ -92,7 +98,15 @@ async function initializeDatabaseForStartup() {
     );
   }
 
-  console.log('Database schema verified before application startup.');
+  // Push the verified schema (and any schema-only local changes) back to Turso.
+  await syncDatabase().catch((err) => {
+    console.warn('Persistent database schema sync unavailable:', err);
+  });
+
+  // Final local assertion after the push.
+  initDatabase();
+
+  console.log('Database schema verified and persisted before application startup.');
 }
 
 async function startServer() {
@@ -101,6 +115,18 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   await initializeDatabaseForStartup();
+
+  // Never let an API request reach the SQLite/libSQL layer while an embedded
+  // replica sync is replacing/reconciling its local state.
+  app.use('/api', async (req, res, next) => {
+    try {
+      await ensureDatabaseReady();
+      next();
+    } catch (err: any) {
+      console.error('Database readiness error:', err);
+      res.status(503).json({ error: 'Database is temporarily synchronizing. Please retry shortly.' });
+    }
+  });
 
   // Sample data is intentionally disabled in production unless explicitly
   // requested with ENABLE_SAMPLE_DATA=true.
@@ -227,6 +253,10 @@ async function startServer() {
         };
 
         saveDocument(newDoc);
+        await syncDatabase().catch((err) => {
+          console.warn('Persistent database sync after upload metadata save unavailable:', err);
+        });
+
         processPdfDocument(docId).catch((err) => {
           console.error(`Background indexing error on ${docId}:`, err);
         });
@@ -456,14 +486,6 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
-
-    if (isPersistentDatabaseConfigured()) {
-      setInterval(() => {
-        syncDatabase().catch((err) => {
-          console.error('Persistent database sync failed:', err);
-        });
-      }, 30 * 1000);
-    }
 
     if (process.env.GOOGLE_DRIVE_API_KEY) {
       setTimeout(() => {
