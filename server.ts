@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
-import crypto from 'node:crypto';
 import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import {
@@ -14,15 +13,16 @@ import {
   getIndexStats,
   db,
   DbDocument,
-  DbVoter
+  DbVoter,
+  syncDatabase,
+  isPersistentDatabaseConfigured
 } from './server/db.ts';
 import { searchVoters, getRelatedFamilyRecords, SearchParams } from './server/searchEngine.ts';
 import {
   processPdfDocument,
   calculateFileHash,
   pauseProcessing,
-  resumeProcessing,
-  getJobStatus
+  resumeProcessing
 } from './server/pdfProcessor.ts';
 import { seedSampleVoterData } from './server/sampleData.ts';
 import {
@@ -30,7 +30,6 @@ import {
   syncGoogleDriveFolders,
   streamDriveFile
 } from './server/googleDriveSync.ts';
-import { syncDatabase, isPersistentDatabaseConfigured } from './server/db.ts';
 
 const PORT = 3000;
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
@@ -38,13 +37,9 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-// Multer storage setup
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, UPLOADS_DIR);
-  },
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
-    // Decode UTF-8 filename if needed
     const originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
     const safeExt = path.extname(originalname) || '.pdf';
     const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -54,7 +49,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB max per PDF
+  limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
       cb(null, true);
@@ -64,43 +59,61 @@ const upload = multer({
   }
 });
 
+/**
+ * Strict startup order:
+ * 1. Restore/sync the persistent replica when possible.
+ * 2. ALWAYS initialize the local schema.
+ * 3. Verify required tables.
+ * 4. Sync the newly-created schema to Turso.
+ * 5. ONLY THEN seed/sample-write data.
+ */
+async function initializeDatabaseForStartup() {
+  await syncDatabase().catch((err) => {
+    console.warn('Persistent database initial sync unavailable:', err);
+  });
+
+  // This MUST happen before seedSampleVoterData() or any DB insert.
+  initDatabase();
+
+  const requiredTables = ['documents', 'voters', 'pages', 'voters_fts'];
+  const missingTables = requiredTables.filter((table) => {
+    const row = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
+    ).get(table) as { name?: string } | undefined;
+    return row?.name !== table;
+  });
+
+  if (missingTables.length > 0) {
+    throw new Error(
+      `Database schema initialization failed. Missing tables: ${missingTables.join(', ')}`
+    );
+  }
+
+  // Publish the schema only after the local tables definitely exist.
+  await syncDatabase().catch((err) => {
+    console.warn('Persistent database schema sync unavailable:', err);
+  });
+
+  // Final guard immediately before any seed/write operation.
+  const documentsTable = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'documents'"
+  ).get() as { name?: string } | undefined;
+
+  if (documentsTable?.name !== 'documents') {
+    throw new Error('Database startup aborted: documents table is missing before sample seeding.');
+  }
+}
+
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-  // Initialize DB and sample attached data
-  // Restore the persistent remote index before creating/using local tables.
-  // On a fresh Render instance this pulls the existing database; on a brand-new
-  // database the subsequent schema initialization creates the tables and the
-  // second sync publishes them.
-  await syncDatabase().catch((err) => {
-    console.warn('Persistent database initial sync unavailable:', err);
-  });
+  await initializeDatabaseForStartup();
 
-  initDatabase();
-
-  await syncDatabase().catch((err) => {
-    console.warn('Persistent database schema sync unavailable:', err);
-  });
-
-  // A Turso database can legitimately start empty. In that case the embedded
-  // replica may finish syncing without carrying the local CREATE TABLE DDL
-  // back into the process. Re-run the schema initializer after every bootstrap
-  // sync and verify the critical table before any seed/write operation.
-  initDatabase();
-
-  const documentsTable = db.prepare(
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'documents'"
-  ).get() as { name?: string } | undefined;
-
-  if (!documentsTable?.name) {
-    throw new Error('Database schema initialization failed: documents table is missing.');
-  }
-
+  // Schema is guaranteed to exist before this function can run.
   await seedSampleVoterData().catch(console.error);
 
-  // Health check
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
@@ -109,39 +122,29 @@ async function startServer() {
     });
   });
 
-  // Index Dashboard Statistics
   app.get('/api/stats', (req, res) => {
     try {
-      const stats = getIndexStats();
-      res.json(stats);
+      res.json(getIndexStats());
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // Google Drive indexing status
   app.get('/api/drive/status', (req, res) => {
     res.json(getDriveSyncStatus());
   });
 
-  // Manually start an incremental sync of the two public Google Drive folders.
   app.post('/api/drive/sync', async (req, res) => {
     try {
-      const result = await syncGoogleDriveFolders();
-      res.json(result);
+      res.json(await syncGoogleDriveFolders());
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // Document Library
   app.get('/api/documents', (req, res) => {
     try {
       const docs = getAllDocuments();
-
-      // Convert SQLite snake_case fields to the camelCase shape expected by the React UI.
-      // Without this mapping, fields such as fileHash and totalRecords are undefined
-      // in DocumentLibrary and can crash the React render.
       const documents = docs.map((doc) => ({
         id: doc.id,
         filename: doc.filename,
@@ -164,7 +167,6 @@ async function startServer() {
         createdAt: doc.created_at,
         updatedAt: doc.updated_at
       }));
-
       res.json(documents);
     } catch (err: any) {
       console.error('Document Library API error:', err);
@@ -172,7 +174,6 @@ async function startServer() {
     }
   });
 
-  // Upload single or multiple PDFs
   app.post('/api/documents/upload', upload.array('files', 50), async (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];
@@ -190,15 +191,10 @@ async function startServer() {
       for (const file of files) {
         const decodedOriginalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const fileHash = await calculateFileHash(file.path);
-
-        // Duplicate Check
         const existingDoc = findDocumentByHash(fileHash);
-        if (existingDoc) {
-          // Remove duplicate from uploads disk
-          try {
-            fs.unlinkSync(file.path);
-          } catch {}
 
+        if (existingDoc) {
+          try { fs.unlinkSync(file.path); } catch {}
           uploadResults.push({
             file: decodedOriginalName,
             documentId: existingDoc.id,
@@ -232,8 +228,6 @@ async function startServer() {
         };
 
         saveDocument(newDoc);
-
-        // Start indexing asynchronously in the background
         processPdfDocument(docId).catch((err) => {
           console.error(`Background indexing error on ${docId}:`, err);
         });
@@ -253,46 +247,34 @@ async function startServer() {
     }
   });
 
-  // Re-index Document
   app.post('/api/documents/:id/reindex', async (req, res) => {
     try {
       const { id } = req.params;
       const doc = getDocumentById(id);
       if (!doc) return res.status(404).json({ error: 'ডকুমেন্ট পাওয়া যায়নি।' });
 
-      // Clean existing records for this doc
       db.prepare('DELETE FROM voters WHERE document_id = ?').run(id);
       db.prepare('DELETE FROM voters_fts WHERE voter_id LIKE ?').run(`${id}%`);
       db.prepare('DELETE FROM pages WHERE document_id = ?').run(id);
 
-      // Start processing in background
       processPdfDocument(id).catch(console.error);
-
       res.json({ success: true, message: 'পুনরায় ইনডেক্সিং শুরু হয়েছে।' });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // Pause Document Processing
   app.post('/api/documents/:id/pause', (req, res) => {
-    const { id } = req.params;
-    const ok = pauseProcessing(id);
-    res.json({ success: ok });
+    res.json({ success: pauseProcessing(req.params.id) });
   });
 
-  // Resume Document Processing
   app.post('/api/documents/:id/resume', (req, res) => {
-    const { id } = req.params;
-    const ok = resumeProcessing(id);
-    res.json({ success: ok });
+    res.json({ success: resumeProcessing(req.params.id) });
   });
 
-  // Delete Document
   app.delete('/api/documents/:id', (req, res) => {
     try {
-      const { id } = req.params;
-      const deleted = deleteDocument(id);
+      const deleted = deleteDocument(req.params.id);
       if (!deleted) return res.status(404).json({ error: 'ডকুমেন্ট পাওয়া যায়নি।' });
       res.json({ success: true, message: 'ডকুমেন্ট ও সংশ্লিষ্ট সকল ভোটার রেকর্ড মুছে ফেলা হয়েছে।' });
     } catch (err: any) {
@@ -300,17 +282,14 @@ async function startServer() {
     }
   });
 
-  // Serve original PDF. Drive-indexed files are streamed from Google Drive
-  // when their temporary local copy has already been removed.
   app.get('/api/documents/:id/pdf', async (req, res) => {
     try {
-      const { id } = req.params;
-      const doc = getDocumentById(id);
+      const doc = getDocumentById(req.params.id);
       if (!doc) return res.status(404).json({ error: 'PDF ফাইল পাওয়া যায়নি।' });
 
       if (!fs.existsSync(doc.file_path)) {
         const { getDriveSourceByDocumentId } = await import('./server/db.ts');
-        const source = getDriveSourceByDocumentId(id);
+        const source = getDriveSourceByDocumentId(req.params.id);
         if (!source) return res.status(404).json({ error: 'PDF ফাইলের উৎস পাওয়া যায়নি।' });
         await streamDriveFile(source.drive_file_id, source.resource_key, res);
         return;
@@ -320,8 +299,7 @@ async function startServer() {
       const total = stat.size;
 
       if (req.headers.range) {
-        const range = req.headers.range;
-        const parts = range.replace(/bytes=/, '').split('-');
+        const parts = req.headers.range.replace(/bytes=/, '').split('-');
         const startByte = parseInt(parts[0], 10);
         const endByte = parts[1] ? parseInt(parts[1], 10) : total - 1;
         const chunksize = endByte - startByte + 1;
@@ -350,7 +328,6 @@ async function startServer() {
     }
   });
 
-  // Search Voters
   app.get('/api/search', (req, res) => {
     try {
       const params: SearchParams = {
@@ -368,26 +345,21 @@ async function startServer() {
         limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
         documentId: req.query.documentId as string
       };
-
-      const results = searchVoters(params);
-      res.json(results);
+      res.json(searchVoters(params));
     } catch (err: any) {
       console.error('Search API error:', err);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // Related Family Records (same father and mother)
   app.get('/api/related-family', (req, res) => {
     try {
       const fatherName = req.query.fatherName as string;
       const motherName = req.query.motherName as string;
       const excludeId = req.query.excludeId as string;
-
       if (!fatherName || !motherName) {
         return res.status(400).json({ error: 'পিতা ও মাতার নাম আবশ্যক।' });
       }
-
       const related = getRelatedFamilyRecords(fatherName, motherName, excludeId);
       res.json({ results: related, count: related.length });
     } catch (err: any) {
@@ -395,7 +367,6 @@ async function startServer() {
     }
   });
 
-  // Export Search Results to CSV
   app.get('/api/export/csv', (req, res) => {
     try {
       const params: SearchParams = {
@@ -410,19 +381,15 @@ async function startServer() {
         village: (req.query.village || req.query.voterArea) as string,
         searchMode: (req.query.searchMode as 'exact' | 'partial' | 'fuzzy') || 'partial',
         page: 1,
-        limit: 10000 // Export up to 10k records at once
+        limit: 10000
       };
 
       const { results } = searchVoters(params);
-
-      // CSV Header in Bengali as requested:
-      // নাম, ভোটার নং, পিতার নাম, মাতার নাম, জন্মতারিখ, ঠিকানা, ফাইলের নাম, পৃষ্ঠা, OCR Confidence
       const headers = ['নাম', 'ভোটার নং', 'পিতার নাম', 'মাতার নাম', 'জন্মতারিখ', 'ঠিকানা', 'ফাইলের নাম', 'পৃষ্ঠা', 'OCR Confidence'];
-      
       const csvRows = [headers.join(',')];
 
       for (const r of results) {
-        const row = [
+        csvRows.push([
           `"${(r.name || '').replace(/"/g, '""')}"`,
           `"${(r.voterNumber || '').replace(/"/g, '""')}"`,
           `"${(r.fatherName || '').replace(/"/g, '""')}"`,
@@ -432,20 +399,17 @@ async function startServer() {
           `"${(r.pdfFileName || '').replace(/"/g, '""')}"`,
           `"${r.pageNumber}"`,
           `"${Math.round(r.ocrConfidence * 100)}%"`
-        ];
-        csvRows.push(row.join(','));
+        ].join(','));
       }
 
-      const csvContent = '\uFEFF' + csvRows.join('\r\n'); // Add UTF-8 BOM for Excel Bengali rendering
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="voter_search_results.csv"');
-      res.send(csvContent);
+      res.send('\uFEFF' + csvRows.join('\r\n'));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // Export Search Results to JSON
   app.get('/api/export/json', (req, res) => {
     try {
       const params: SearchParams = {
@@ -459,7 +423,6 @@ async function startServer() {
         page: 1,
         limit: 10000
       };
-
       const { results, total } = searchVoters(params);
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="voter_search_results.json"');
@@ -469,7 +432,6 @@ async function startServer() {
     }
   });
 
-  // Trigger Re-seeding of sample documents
   app.post('/api/seed-samples', async (req, res) => {
     try {
       await seedSampleVoterData();
@@ -479,7 +441,6 @@ async function startServer() {
     }
   });
 
-  // Vite Middleware for dev & static serving for prod
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -498,8 +459,6 @@ async function startServer() {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
 
     if (isPersistentDatabaseConfigured()) {
-      // Keep the remote copy current without making every individual INSERT
-      // wait on the network. Writes remain local and are periodically synced.
       setInterval(() => {
         syncDatabase().catch((err) => {
           console.error('Persistent database sync failed:', err);
