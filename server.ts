@@ -84,6 +84,20 @@ async function startServer() {
     console.warn('Persistent database schema sync unavailable:', err);
   });
 
+  // A Turso database can legitimately start empty. In that case the embedded
+  // replica may finish syncing without carrying the local CREATE TABLE DDL
+  // back into the process. Re-run the schema initializer after every bootstrap
+  // sync and verify the critical table before any seed/write operation.
+  initDatabase();
+
+  const documentsTable = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'documents'"
+  ).get() as { name?: string } | undefined;
+
+  if (!documentsTable?.name) {
+    throw new Error('Database schema initialization failed: documents table is missing.');
+  }
+
   await seedSampleVoterData().catch(console.error);
 
   // Health check
