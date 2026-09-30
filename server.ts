@@ -86,8 +86,36 @@ async function startServer() {
   app.get('/api/documents', (req, res) => {
     try {
       const docs = getAllDocuments();
-      res.json(docs);
+
+      // Convert SQLite snake_case fields to the camelCase shape expected by the React UI.
+      // Without this mapping, fields such as fileHash and totalRecords are undefined
+      // in DocumentLibrary and can crash the React render.
+      const documents = docs.map((doc) => ({
+        id: doc.id,
+        filename: doc.filename,
+        originalName: doc.original_name,
+        filePath: doc.file_path,
+        fileHash: doc.file_hash,
+        fileSize: Number(doc.file_size || 0),
+        pageCount: Number(doc.page_count || 0),
+        processedPages: Number(doc.processed_pages || 0),
+        status: doc.status,
+        ocrStatus: doc.ocr_status,
+        totalRecords: Number(doc.total_records || 0),
+        district: doc.district || '',
+        upazila: doc.upazila || '',
+        unionName: doc.union_name || '',
+        ward: doc.ward || '',
+        voterArea: doc.voter_area || '',
+        voterAreaCode: doc.voter_area_code || '',
+        errorMessage: doc.error_message || '',
+        createdAt: doc.created_at,
+        updatedAt: doc.updated_at
+      }));
+
+      res.json(documents);
     } catch (err: any) {
+      console.error('Document Library API error:', err);
       res.status(500).json({ error: err.message });
     }
   });
