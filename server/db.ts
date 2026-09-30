@@ -1,4 +1,4 @@
-import { DatabaseSync } from 'node:sqlite';
+import Database from 'libsql';
 import fs from 'node:fs';
 import path from 'node:path';
 import { normalizeBengaliText, normalizeDate, bengaliToEnglishDigits } from './bengaliNormalizer.ts';
@@ -15,7 +15,44 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-export const db = new DatabaseSync(DB_PATH);
+const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL || '';
+const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN || '';
+
+const dbOptions = TURSO_DATABASE_URL
+  ? { syncUrl: TURSO_DATABASE_URL, authToken: TURSO_AUTH_TOKEN }
+  : undefined;
+
+// libSQL keeps the same synchronous SQLite-style prepare/get/all/run API used by
+// the existing application, while optionally maintaining an embedded replica of
+// a persistent Turso database. Render's local filesystem can therefore remain
+// disposable without losing the search index.
+export const db = new Database(DB_PATH, dbOptions as any);
+
+let syncInFlight: Promise<void> | null = null;
+
+export function isPersistentDatabaseConfigured(): boolean {
+  return Boolean(TURSO_DATABASE_URL && TURSO_AUTH_TOKEN);
+}
+
+export async function syncDatabase(): Promise<void> {
+  if (!isPersistentDatabaseConfigured() || typeof (db as any).sync !== 'function') {
+    return;
+  }
+
+  if (syncInFlight) {
+    return syncInFlight;
+  }
+
+  syncInFlight = (async () => {
+    try {
+      await (db as any).sync();
+    } finally {
+      syncInFlight = null;
+    }
+  })();
+
+  return syncInFlight;
+}
 
 // Initialize tables and indexes
 export function initDatabase() {
@@ -134,9 +171,6 @@ export function initDatabase() {
     );
   `);
 }
-
-// Ensure database is initialized
-initDatabase();
 
 export interface DbDocument {
   id: string;
