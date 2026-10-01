@@ -3,14 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { normalizeBengaliText, normalizeDate, bengaliToEnglishDigits } from './bengaliNormalizer.ts';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-const DB_PATH = path.join(DATA_DIR, 'voter_database.db');
 
-// Ensure directories exist
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+// Ensure the uploads directory exists for manually uploaded PDFs.
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
@@ -19,109 +14,33 @@ const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL || '';
 const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN || '';
 
 /**
- * libSQL embedded replicas require the local DB file and its companion
- * "<db>-info" metadata file to exist as a pair. Render can retain an old
- * plain SQLite DB (or a partially-created replica) across restarts, which
- * causes SyncInvalidLocalState before libSQL can bootstrap from Turso.
+ * Production database mode:
+ * - When Turso credentials are configured, connect directly to the remote
+ *   database using only the remote URL + auth token.
+ * - Do NOT create an embedded replica, local database file, syncUrl, WAL/SHM
+ *   files, or local replica metadata.
  *
- * We do NOT blindly delete the database. If the pair is inconsistent, move
- * the stale local files into a quarantine directory and let libSQL create a
- * fresh replica from Turso. This keeps the old bytes available for recovery
- * while ensuring startup can proceed safely.
+ * This is intentional for Render's ephemeral filesystem. The authoritative
+ * database is Turso itself; Render only holds application/PDF temp files.
  */
-function repairPersistentReplicaState(): void {
-  if (!TURSO_DATABASE_URL || !TURSO_AUTH_TOKEN) return;
-
-  const metadataPath = `${DB_PATH}-info`;
-  const dbExists = fs.existsSync(DB_PATH);
-  const metadataExists = fs.existsSync(metadataPath);
-
-  if (dbExists === metadataExists) return;
-
-  const quarantineDir = path.join(DATA_DIR, 'replica-quarantine');
-  fs.mkdirSync(quarantineDir, { recursive: true });
-
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-
-  const pathsToMove = [
-    DB_PATH,
-    `${DB_PATH}-wal`,
-    `${DB_PATH}-shm`,
-    metadataPath
-  ].filter((filePath) => fs.existsSync(filePath));
-
-  console.warn(
-    `[libsql] Inconsistent local replica detected (db=${dbExists}, metadata=${metadataExists}). ` +
-    `Quarantining ${pathsToMove.length} stale file(s) before Turso bootstrap.`
-  );
-
-  for (const sourcePath of pathsToMove) {
-    const targetPath = path.join(
-      quarantineDir,
-      `${path.basename(sourcePath)}.${stamp}`
-    );
-
-    try {
-      fs.renameSync(sourcePath, targetPath);
-      console.warn(`[libsql] Quarantined: ${sourcePath} -> ${targetPath}`);
-    } catch (err) {
-      throw new Error(
-        `Could not quarantine stale libSQL replica file "${sourcePath}": ${String(err)}`
-      );
-    }
-  }
-}
-
-
 const dbOptions = TURSO_DATABASE_URL
-  ? { syncUrl: TURSO_DATABASE_URL, authToken: TURSO_AUTH_TOKEN }
+  ? { authToken: TURSO_AUTH_TOKEN }
   : undefined;
 
-// Repair only an inconsistent embedded-replica state before opening the DB.
-// A healthy pair is preserved; an inconsistent pair is quarantined so libSQL
-// can bootstrap a clean replica from Turso.
-repairPersistentReplicaState();
-
-// libSQL keeps the same synchronous SQLite-style prepare/get/all/run API used by
-// the existing application, while optionally maintaining an embedded replica of
-// a persistent Turso database. Render's local filesystem can therefore remain
-// disposable without losing the search index.
-export const db = new Database(DB_PATH, dbOptions as any);
-
-let syncInFlight: Promise<void> | null = null;
+export const db = TURSO_DATABASE_URL
+  ? new Database(TURSO_DATABASE_URL, dbOptions as any)
+  : new Database(':memory:');
 
 export function isPersistentDatabaseConfigured(): boolean {
   return Boolean(TURSO_DATABASE_URL && TURSO_AUTH_TOKEN);
 }
 
+/**
+ * Remote-only mode has no local replica to synchronize.
+ * Keep this function as a no-op so existing callers remain compatible.
+ */
 export async function syncDatabase(): Promise<void> {
-  if (!isPersistentDatabaseConfigured() || typeof (db as any).sync !== 'function') {
-    return;
-  }
-
-  if (syncInFlight) {
-    return syncInFlight;
-  }
-
-  syncInFlight = (async () => {
-    try {
-      await (db as any).sync();
-    } finally {
-      // libSQL embedded-replica sync can replace/reconcile the local SQLite
-      // schema with the remote state. Re-assert the local application schema
-      // immediately after every sync so API requests can never race with a
-      // missing `documents` (or related) table.
-      try {
-        initDatabase();
-      } catch (schemaErr) {
-        console.error('[libsql] Failed to re-assert local schema after sync:', schemaErr);
-        throw schemaErr;
-      }
-      syncInFlight = null;
-    }
-  })();
-
-  return syncInFlight;
+  return;
 }
 
 // Initialize tables and indexes
