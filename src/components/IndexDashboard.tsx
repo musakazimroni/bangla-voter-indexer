@@ -252,7 +252,7 @@ export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefresh
             {driveNotice && (
               <div className={`mb-3 p-3 rounded-xl border text-xs flex items-start space-x-2 ${isDriveSyncing ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
                 <RefreshCw className={`w-4 h-4 shrink-0 ${isDriveSyncing ? 'animate-spin text-blue-600' : 'text-emerald-600'}`} />
-                <span>{driveNotice}</span>
+                <span className="break-words leading-5">{driveNotice}</span>
               </div>
             )}
 
@@ -287,7 +287,7 @@ export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefresh
               disabled={isDriveSyncing}
               className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <HardDrive className={`w-4 h-4 ${isDriveSyncing ? 'animate-pulse' : ''}`} />
+              {isDriveSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
               <span>{isDriveSyncing ? 'Google Drive সিংক চলছে...' : 'গুগল ড্রাইভ সিংক শুরু করুন'}</span>
             </button>
 
