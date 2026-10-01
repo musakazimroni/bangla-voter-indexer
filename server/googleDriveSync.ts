@@ -311,6 +311,7 @@ export async function syncGoogleDriveFolders() {
     ]);
 
     lastDiscovered = { male: maleFiles.length, female: femaleFiles.length };
+    console.log(`[Drive sync] discovered male=${maleFiles.length}, female=${femaleFiles.length}`);
 
     let indexed = 0;
     let skipped = 0;
@@ -353,8 +354,11 @@ export async function syncGoogleDriveFolders() {
       if (femaleCandidates.length) candidates.push(femaleCandidates.shift()!);
     }
 
+    console.log(`[Drive sync] candidates male=${maleCandidates.length}, female=${femaleCandidates.length}, batch=${DRIVE_SYNC_BATCH_SIZE}`);
+
     for (const { file, sourceType, folderId } of candidates) {
       attempted++;
+      console.log(`[Drive sync] processing ${sourceType}: ${file.name} (${file.id})`);
       const result = await indexDriveFile(file, sourceType, folderId);
       if (result.action === 'indexed') indexed++;
       else if (result.action === 'skipped') skipped++;
@@ -367,6 +371,8 @@ export async function syncGoogleDriveFolders() {
         console.warn('Database sync after Drive candidate failed:', err);
       });
     }
+
+    console.log(`[Drive sync] finished attempted=${attempted}, indexed=${indexed}, skipped=${skipped}, duplicates=${duplicates}, failed=${failed}`);
 
     return {
       configured: true,
