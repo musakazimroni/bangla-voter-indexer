@@ -205,9 +205,25 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
     const fileHash = await calculateFileHash(localPath);
     logDriveMemory(`after SHA-256 hash: ${file.name}`);
 
-    const duplicate = findDocumentByHash(fileHash);
+    let duplicate;
+    try {
+      console.log(`[Drive DB] before findDocumentByHash file=${file.name} hash=${fileHash.slice(0, 12)}...`);
+      duplicate = findDocumentByHash(fileHash);
+      console.log(`[Drive DB] after findDocumentByHash found=${Boolean(duplicate)}`);
+    } catch (error: any) {
+      console.error('[Drive DB] findDocumentByHash failed:', {
+        message: error?.message,
+        code: error?.code,
+        name: error?.name,
+        stack: error?.stack
+      });
+      throw error;
+    }
+
     if (duplicate) {
-      upsertDriveSource({
+      try {
+        console.log(`[Drive DB] before duplicate-source upsert file=${file.name}`);
+        upsertDriveSource({
         drive_file_id: file.id,
         source_type: sourceType,
         folder_id: folderId,
@@ -219,7 +235,12 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
         status: 'indexed',
         error_message: '',
         updated_at: new Date().toISOString()
-      });
+        });
+        console.log(`[Drive DB] after duplicate-source upsert file=${file.name}`);
+      } catch (error: any) {
+        console.error('[Drive DB] duplicate-source upsert failed:', { message: error?.message, code: error?.code, name: error?.name, stack: error?.stack });
+        throw error;
+      }
       fs.rmSync(localPath, { force: true });
       return { action: 'duplicate', documentId: duplicate.id };
     }
@@ -233,7 +254,9 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
       // Reuse the existing document/checkpoint and only refresh its temporary
       // local PDF path/hash. The old voters/pages remain intact so OCR resumes
       // at existingDocument.processed_pages.
-      saveDocument({
+      try {
+        console.log(`[Drive DB] before saveDocument (resume) id=${documentId} file=${file.name}`);
+        saveDocument({
         ...existingDocument,
         filename: path.basename(localPath),
         original_name: file.name,
@@ -246,9 +269,16 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
           : 'in_progress',
         error_message: '',
         updated_at: now
-      });
+        });
+        console.log(`[Drive DB] after saveDocument (resume) id=${documentId}`);
+      } catch (error: any) {
+        console.error('[Drive DB] saveDocument (resume) failed:', { message: error?.message, code: error?.code, name: error?.name, stack: error?.stack });
+        throw error;
+      }
     } else {
-      saveDocument({
+      try {
+        console.log(`[Drive DB] before saveDocument (new) id=${documentId} file=${file.name}`);
+        saveDocument({
         id: documentId,
         filename: path.basename(localPath),
         original_name: file.name,
@@ -268,10 +298,17 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
         voter_area_code: '',
         created_at: now,
         updated_at: now
-      });
+        });
+        console.log(`[Drive DB] after saveDocument (new) id=${documentId}`);
+      } catch (error: any) {
+        console.error('[Drive DB] saveDocument (new) failed:', { message: error?.message, code: error?.code, name: error?.name, stack: error?.stack });
+        throw error;
+      }
     }
 
-    upsertDriveSource({
+    try {
+      console.log(`[Drive DB] before processing-source upsert id=${documentId} file=${file.name}`);
+      upsertDriveSource({
       drive_file_id: file.id,
       source_type: sourceType,
       folder_id: folderId,
@@ -283,7 +320,12 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
       status: 'processing',
       error_message: '',
       updated_at: now
-    });
+      });
+      console.log(`[Drive DB] after processing-source upsert id=${documentId}`);
+    } catch (error: any) {
+      console.error('[Drive DB] processing-source upsert failed:', { message: error?.message, code: error?.code, name: error?.name, stack: error?.stack });
+      throw error;
+    }
 
     // Persist the document/source checkpoint BEFORE OCR starts. This sync is
     // intentionally measured because Turso reconciliation can itself consume
