@@ -438,15 +438,14 @@ export async function syncGoogleDriveFolders() {
       `[Drive sync] configuration: apiKey=${GOOGLE_DRIVE_API_KEY ? 'present' : 'missing'}, maleFolder=${MALE_FOLDER_ID}, femaleFolder=${FEMALE_FOLDER_ID}`
     );
 
-    await Promise.all([
-      verifyPublicFolder(MALE_FOLDER_ID, 'male'),
-      verifyPublicFolder(FEMALE_FOLDER_ID, 'female')
-    ]);
+    // Keep Drive discovery sequential too, so no Promise.all fan-out occurs
+    // on the small Render instance. The actual PDF processing below is also
+    // strictly sequential.
+    await verifyPublicFolder(MALE_FOLDER_ID, 'male');
+    await verifyPublicFolder(FEMALE_FOLDER_ID, 'female');
 
-    const [maleFiles, femaleFiles] = await Promise.all([
-      listPublicFolderPdfs(MALE_FOLDER_ID),
-      listPublicFolderPdfs(FEMALE_FOLDER_ID)
-    ]);
+    const maleFiles = await listPublicFolderPdfs(MALE_FOLDER_ID);
+    const femaleFiles = await listPublicFolderPdfs(FEMALE_FOLDER_ID);
 
     lastDiscovered = { male: maleFiles.length, female: femaleFiles.length };
     console.log(`[Drive sync] discovered male=${maleFiles.length}, female=${femaleFiles.length}`);
