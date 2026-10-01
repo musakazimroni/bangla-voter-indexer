@@ -43,12 +43,51 @@ function apiUrl(endpoint: string, params: Record<string, string> = {}) {
 }
 
 async function driveJson<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
-  const response = await fetch(apiUrl(endpoint, params));
+  const url = apiUrl(endpoint, params);
+  console.log(`[Drive API] GET ${endpoint} ${url.searchParams.toString().replace(GOOGLE_DRIVE_API_KEY, '[redacted]')}`);
+  const response = await fetch(url);
   const text = await response.text();
+
   if (!response.ok) {
+    console.error(`[Drive API] ${endpoint} failed: HTTP ${response.status} ${text.slice(0, 1000)}`);
     throw new Error(`Google Drive API ${response.status}: ${text.slice(0, 500)}`);
   }
-  return JSON.parse(text) as T;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    console.error(`[Drive API] ${endpoint} returned non-JSON response: ${text.slice(0, 1000)}`);
+    throw new Error(`Google Drive API returned invalid JSON for ${endpoint}`);
+  }
+}
+
+async function verifyPublicFolder(folderId: string, label: 'male' | 'female') {
+  const result = await driveJson<{
+    id?: string;
+    name?: string;
+    mimeType?: string;
+    trashed?: boolean;
+  }>(`files/${encodeURIComponent(folderId)}`, {
+    fields: 'id,name,mimeType,trashed'
+  });
+
+  console.log(
+    `[Drive sync] ${label} folder verified: id=${result.id || folderId}, name=${JSON.stringify(result.name || '')}, mimeType=${result.mimeType || 'unknown'}, trashed=${Boolean(result.trashed)}`
+  );
+
+  if (result.id !== folderId) {
+    throw new Error(`Google Drive ${label} folder ID verification failed.`);
+  }
+
+  if (result.mimeType !== 'application/vnd.google-apps.folder') {
+    throw new Error(`Google Drive ${label} ID is not a folder (mimeType=${result.mimeType || 'unknown'}).`);
+  }
+
+  if (result.trashed) {
+    throw new Error(`Google Drive ${label} folder is in the trash.`);
+  }
+
+  return result;
 }
 
 /**
@@ -60,10 +99,13 @@ export async function listPublicFolderPdfs(folderId: string): Promise<DriveFile[
   const files: DriveFile[] = [];
   let pageToken = '';
 
+  // List by parent first, then filter locally. This avoids treating a folder
+  // as empty when Drive exposes a PDF with a MIME type other than application/pdf.
   do {
     const params: Record<string, string> = {
-      q: `'${folderId}' in parents and trashed = false and mimeType = 'application/pdf'`,
+      q: `'${folderId}' in parents and trashed = false`,
       pageSize: '1000',
+      orderBy: 'name_natural',
       fields: 'nextPageToken,files(id,name,mimeType,size,modifiedTime,md5Checksum,resourceKey,webViewLink)',
       supportsAllDrives: 'true',
       includeItemsFromAllDrives: 'true'
@@ -71,7 +113,16 @@ export async function listPublicFolderPdfs(folderId: string): Promise<DriveFile[
     if (pageToken) params.pageToken = pageToken;
 
     const result = await driveJson<{ files?: DriveFile[]; nextPageToken?: string }>('files', params);
-    files.push(...(result.files || []));
+    const pageFiles = result.files || [];
+    const pdfFiles = pageFiles.filter((file) =>
+      file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    );
+
+    console.log(
+      `[Drive sync] folder=${folderId} pageFiles=${pageFiles.length}, pdfFiles=${pdfFiles.length}, nextPage=${Boolean(result.nextPageToken)}`
+    );
+
+    files.push(...pdfFiles);
     pageToken = result.nextPageToken || '';
   } while (pageToken);
 
@@ -305,6 +356,15 @@ export async function syncGoogleDriveFolders() {
   const startedAt = new Date().toISOString();
 
   try {
+    console.log(
+      `[Drive sync] configuration: apiKey=${GOOGLE_DRIVE_API_KEY ? 'present' : 'missing'}, maleFolder=${MALE_FOLDER_ID}, femaleFolder=${FEMALE_FOLDER_ID}`
+    );
+
+    await Promise.all([
+      verifyPublicFolder(MALE_FOLDER_ID, 'male'),
+      verifyPublicFolder(FEMALE_FOLDER_ID, 'female')
+    ]);
+
     const [maleFiles, femaleFiles] = await Promise.all([
       listPublicFolderPdfs(MALE_FOLDER_ID),
       listPublicFolderPdfs(FEMALE_FOLDER_ID)
