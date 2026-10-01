@@ -506,10 +506,7 @@ export async function syncGoogleDriveFolders() {
     discoveredMale = await forEachPublicFolderPdfPage(
       MALE_FOLDER_ID,
       async (files, pageNumber) => {
-        const before = files.length;
         await processPage(files, 'male', MALE_FOLDER_ID, pageNumber);
-        // Count only the current page; no page survives this callback.
-        discoveredMale += before;
       }
     );
 
@@ -517,9 +514,7 @@ export async function syncGoogleDriveFolders() {
       discoveredFemale = await forEachPublicFolderPdfPage(
         FEMALE_FOLDER_ID,
         async (files, pageNumber) => {
-          const before = files.length;
           await processPage(files, 'female', FEMALE_FOLDER_ID, pageNumber);
-          discoveredFemale += before;
         }
       );
     } else {
