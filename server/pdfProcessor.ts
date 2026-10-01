@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import {
   saveDocument,
   updateDocumentProgress,
@@ -34,10 +33,18 @@ const activeJobs = new Map<string, ProcessingJob>();
 
 const OCR_RENDER_SCALE = Math.max(
   1,
-  Math.min(2.5, Number(process.env.OCR_RENDER_SCALE || 1.5))
+  Math.min(2.5, Number(process.env.OCR_RENDER_SCALE || 1.25))
 );
 
+function logMemory(label: string) {
+  const m = process.memoryUsage();
+  console.log(
+    `[MEMORY] ${label} | RSS=${(m.rss / 1024 / 1024).toFixed(2)} MB | HeapUsed=${(m.heapUsed / 1024 / 1024).toFixed(2)} MB | External=${(m.external / 1024 / 1024).toFixed(2)} MB | ArrayBuffers=${(m.arrayBuffers / 1024 / 1024).toFixed(2)} MB`
+  );
+}
+
 async function renderPdfPageToPng(page: any): Promise<Buffer> {
+  logMemory('before canvas render');
   const viewport = page.getViewport({ scale: OCR_RENDER_SCALE });
   const width = Math.ceil(viewport.width);
   const height = Math.ceil(viewport.height);
@@ -55,7 +62,9 @@ async function renderPdfPageToPng(page: any): Promise<Buffer> {
       }
     }).promise;
 
-    return canvas.toBuffer('image/png');
+    const png = canvas.toBuffer('image/png');
+    logMemory('after canvas render');
+    return png;
   } finally {
     // Release references promptly; only one rendered page is kept in memory.
     canvas.width = 1;
@@ -67,8 +76,11 @@ async function recognizeScannedPage(
   page: any,
   worker: any
 ): Promise<{ text: string; confidence: number }> {
+  logMemory('before OCR page render');
   const image = await renderPdfPageToPng(page);
+  logMemory('before Tesseract recognize');
   const result = await worker.recognize(image);
+  logMemory('after Tesseract recognize');
   const text = String(result?.data?.text || '').trim();
   const confidence = Number(result?.data?.confidence);
   return {
@@ -131,11 +143,11 @@ export async function processPdfDocument(
   activeJobs.set(documentId, job);
 
   try {
+    logMemory(`start PDF processing: ${doc.original_name}`);
     updateDocumentProgress(documentId, doc.processed_pages, doc.total_records, 'processing', doc.ocr_status);
 
     const pdfBuffer = fs.readFileSync(doc.file_path);
-    const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
-    const pageCount = pdfDoc.getPageCount();
+    logMemory(`after PDF read: ${doc.original_name} (${(pdfBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
 
     let processedPages = doc.processed_pages || 0;
     let totalRecords = doc.total_records || 0;
@@ -153,11 +165,21 @@ export async function processPdfDocument(
     let documentUsedOcr = false;
     let documentOcrConfidence = 1.0;
 
-    // Load pdfjs for text extraction
+    // Load pdfjs for both page count and text extraction. Avoid loading the
+    // same PDF a second time through pdf-lib because that duplicates large
+    // scanned PDFs in memory on small Render instances.
     // @ts-ignore
     const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer) });
+    logMemory('before PDF.js load');
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(pdfBuffer),
+      disableFontFace: true,
+      useSystemFonts: false,
+      isEvalSupported: false
+    });
     const loadedPdf = await loadingTask.promise;
+    const pageCount = loadedPdf.numPages;
+    logMemory(`after PDF.js load: pages=${pageCount}`);
 
     for (let pageNum = processedPages + 1; pageNum <= pageCount; pageNum++) {
       // Check pause / cancel
@@ -171,8 +193,10 @@ export async function processPdfDocument(
         if (job.isCancelled) break;
       }
 
+      logMemory(`before page ${pageNum}/${pageCount}`);
       const page = await loadedPdf.getPage(pageNum);
       const textContent = await page.getTextContent();
+      logMemory(`after text extraction page ${pageNum}/${pageCount}`);
       let extractedText = textContent.items
         .map((item: any) => item.str || '')
         .join(' ');
@@ -224,6 +248,7 @@ export async function processPdfDocument(
         insertVotersBatch(voters);
         totalRecords += voters.length;
       }
+      logMemory(`after DB insert page ${pageNum}: voters=${voters.length}`);
 
       // Record page in DB
       db.prepare(`
@@ -261,6 +286,8 @@ export async function processPdfDocument(
         });
       }
 
+      logMemory(`completed page ${pageNum}/${pageCount}`);
+
       if (onProgress) {
         onProgress(processedPages, pageCount, voters.length);
       }
@@ -268,7 +295,11 @@ export async function processPdfDocument(
 
     if (tesseractWorker) {
       await tesseractWorker.terminate();
+      logMemory('after Tesseract worker terminate');
     }
+
+    await loadedPdf.destroy().catch(() => {});
+    logMemory('after PDF.js destroy');
 
     updateDocumentProgress(
       documentId,
@@ -284,6 +315,7 @@ export async function processPdfDocument(
     activeJobs.delete(documentId);
     return { success: true, totalRecords };
   } catch (error: any) {
+    logMemory('PDF processing failure');
     console.error('Error processing PDF:', error);
     // Preserve the latest persisted page/record checkpoint instead of reverting
     // to the document values captured before processing started.
