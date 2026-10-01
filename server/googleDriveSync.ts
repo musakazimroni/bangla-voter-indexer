@@ -457,57 +457,74 @@ export async function syncGoogleDriveFolders() {
     let failed = 0;
     let attempted = 0;
 
-    // Process a small batch per run. This makes a 1,600+ PDF library resumable
-    // and prevents one Render instance from trying to OCR everything at once.
-    const maleCandidates = maleFiles
-      .map((file) => ({ file, sourceType: 'male' as const, folderId: MALE_FOLDER_ID }))
-      .filter(({ file }) => {
-        const source = getDriveSourceByFileId(file.id);
-        return !source ||
+    // Process a small batch per run. Discovery may return thousands of files,
+    // but only the configured batch is selected and each selected PDF is handled
+    // strictly one at a time. Never create concurrent PDF-processing promises.
+    const maleCandidates: Array<{ file: DriveFile; sourceType: 'male'; folderId: string }> = [];
+    const femaleCandidates: Array<{ file: DriveFile; sourceType: 'female'; folderId: string }> = [];
+
+    // Filter candidates sequentially as well. This avoids Promise.all/forEach
+    // fan-out over a 2,700+ file library and keeps memory bounded on Render.
+    for (const file of maleFiles) {
+      const source = getDriveSourceByFileId(file.id);
+      if (!source ||
           source.status !== 'indexed' ||
           source.modified_time !== (file.modifiedTime || '') ||
-          Number(source.file_size || 0) !== Number(file.size || 0);
-      });
+          Number(source.file_size || 0) !== Number(file.size || 0)) {
+        maleCandidates.push({ file, sourceType: 'male', folderId: MALE_FOLDER_ID });
+      }
+    }
 
-    const femaleCandidates = femaleFiles
-      .map((file) => ({ file, sourceType: 'female' as const, folderId: FEMALE_FOLDER_ID }))
-      .filter(({ file }) => {
-        const source = getDriveSourceByFileId(file.id);
-        return !source ||
+    for (const file of femaleFiles) {
+      const source = getDriveSourceByFileId(file.id);
+      if (!source ||
           source.status !== 'indexed' ||
           source.modified_time !== (file.modifiedTime || '') ||
-          Number(source.file_size || 0) !== Number(file.size || 0);
-      });
+          Number(source.file_size || 0) !== Number(file.size || 0)) {
+        femaleCandidates.push({ file, sourceType: 'female', folderId: FEMALE_FOLDER_ID });
+      }
+    }
 
-    // Alternate male/female candidates so one large folder cannot starve the other.
+    // Build only the small batch to run, alternating folders so one folder
+    // cannot starve the other. No Promise.all is used for file processing.
     const candidates: Array<{
       file: DriveFile;
       sourceType: 'male' | 'female';
       folderId: string;
     }> = [];
+    let maleIndex = 0;
+    let femaleIndex = 0;
 
-    while (candidates.length < DRIVE_SYNC_BATCH_SIZE && (maleCandidates.length || femaleCandidates.length)) {
-      if (maleCandidates.length) candidates.push(maleCandidates.shift()!);
+    while (candidates.length < DRIVE_SYNC_BATCH_SIZE &&
+           (maleIndex < maleCandidates.length || femaleIndex < femaleCandidates.length)) {
+      if (maleIndex < maleCandidates.length) candidates.push(maleCandidates[maleIndex++]);
       if (candidates.length >= DRIVE_SYNC_BATCH_SIZE) break;
-      if (femaleCandidates.length) candidates.push(femaleCandidates.shift()!);
+      if (femaleIndex < femaleCandidates.length) candidates.push(femaleCandidates[femaleIndex++]);
     }
 
     console.log(`[Drive sync] candidates male=${maleCandidates.length}, female=${femaleCandidates.length}, batch=${DRIVE_SYNC_BATCH_SIZE}`);
 
+    const totalToProcess = candidates.length;
+    let processingIndex = 0;
+
+    // IMPORTANT: strictly sequential. Do not replace this with Promise.all,
+    // forEach(async ...), map(async ...), or another parallel fan-out.
     for (const { file, sourceType, folderId } of candidates) {
+      processingIndex++;
       attempted++;
       currentRun.attempted = attempted;
       currentDriveItem = { sourceType, fileName: file.name, fileId: file.id };
-      console.log(`[Drive sync] processing ${sourceType}: ${file.name} (${file.id})`);
+      console.log(`[Drive sync] Processing file index ${processingIndex} of ${totalToProcess}: ${sourceType}: ${file.name} (${file.id})`);
+
       const result = await indexDriveFile(file, sourceType, folderId);
       if (result.action === 'indexed') indexed++;
       else if (result.action === 'skipped') skipped++;
       else if (result.action === 'duplicate') duplicates++;
       else failed++;
 
-      // Persist after every PDF. If Render restarts during the next PDF,
-      // everything completed before the restart is already in Turso.
-      await (await import('./db.ts')).syncDatabase().catch((err) => {
+      // Persist after every PDF. The next PDF does not start until this
+      // candidate's DB checkpoint has completed.
+      await syncDatabase().catch((err) => {
         console.warn('Database sync after Drive candidate failed:', err);
       });
     }
