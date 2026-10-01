@@ -265,12 +265,13 @@ export async function ensureDatabaseReady(): Promise<void> {
     await syncInFlight;
   }
 
+  // Always assert the application schema before an API handler touches the
+  // replica. This is intentionally idempotent and protects against a remote
+  // Turso snapshot that does not yet contain the application tables.
+  initDatabase();
+
   if (!hasRequiredSchema()) {
-    initDatabase();
-    if (isPersistentDatabaseConfigured()) {
-      await syncDatabase();
-      initDatabase();
-    }
+    throw new Error('Database schema is unavailable after local initialization.');
   }
 }
 
