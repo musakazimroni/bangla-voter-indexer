@@ -115,6 +115,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   await initializeDatabaseForStartup();
+  console.log('[startup] Database bootstrap complete; starting API server only after schema verification.');
 
   // Never let an API request reach the SQLite/libSQL layer while an embedded
   // replica sync is replacing/reconciling its local state.
