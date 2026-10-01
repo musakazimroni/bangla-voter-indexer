@@ -99,22 +99,23 @@ async function verifyPublicFolder(folderId: string, label: 'male' | 'female') {
 }
 
 /**
- * Lists every PDF directly inside a public Drive folder.
- * Google documents that public folders can be listed with an API key and
- * the parent-folder query. Pagination is handled here so 700+ files are safe.
+ * Streams PDF metadata page-by-page. A page is released as soon as its
+ * callback completes; the full Drive library is never retained in memory.
  */
-export async function listPublicFolderPdfs(folderId: string): Promise<DriveFile[]> {
-  const files: DriveFile[] = [];
+async function forEachPublicFolderPdfPage(
+  folderId: string,
+  onPage: (files: DriveFile[], pageNumber: number) => Promise<void>
+): Promise<number> {
   let pageToken = '';
+  let pageNumber = 0;
+  let totalPdfFiles = 0;
 
-  // List by parent first, then filter locally. This avoids treating a folder
-  // as empty when Drive exposes a PDF with a MIME type other than application/pdf.
   do {
     const params: Record<string, string> = {
       q: `'${folderId}' in parents and trashed = false`,
       pageSize: '1000',
       orderBy: 'name_natural',
-      fields: 'nextPageToken,files(id,name,mimeType,size,modifiedTime,md5Checksum,resourceKey,webViewLink)',
+      fields: 'nextPageToken,files(id,name,mimeType,size,modifiedTime,md5Checksum,resourceKey)',
       supportsAllDrives: 'true',
       includeItemsFromAllDrives: 'true'
     };
@@ -126,15 +127,21 @@ export async function listPublicFolderPdfs(folderId: string): Promise<DriveFile[
       file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
     );
 
+    pageNumber++;
+    totalPdfFiles += pdfFiles.length;
     console.log(
-      `[Drive sync] folder=${folderId} pageFiles=${pageFiles.length}, pdfFiles=${pdfFiles.length}, nextPage=${Boolean(result.nextPageToken)}`
+      `[Drive sync] folder=${folderId} page=${pageNumber} pageFiles=${pageFiles.length}, pdfFiles=${pdfFiles.length}, nextPage=${Boolean(result.nextPageToken)}`
     );
 
-    files.push(...pdfFiles);
+    await onPage(pdfFiles, pageNumber);
+
+    // Drop references before fetching the next page.
+    pageFiles.length = 0;
+    pdfFiles.length = 0;
     pageToken = result.nextPageToken || '';
   } while (pageToken);
 
-  return files;
+  return totalPdfFiles;
 }
 
 async function downloadDriveFile(file: DriveFile, destination: string) {
@@ -438,95 +445,94 @@ export async function syncGoogleDriveFolders() {
       `[Drive sync] configuration: apiKey=${GOOGLE_DRIVE_API_KEY ? 'present' : 'missing'}, maleFolder=${MALE_FOLDER_ID}, femaleFolder=${FEMALE_FOLDER_ID}`
     );
 
-    // Keep Drive discovery sequential too, so no Promise.all fan-out occurs
-    // on the small Render instance. The actual PDF processing below is also
-    // strictly sequential.
     await verifyPublicFolder(MALE_FOLDER_ID, 'male');
     await verifyPublicFolder(FEMALE_FOLDER_ID, 'female');
-
-    const maleFiles = await listPublicFolderPdfs(MALE_FOLDER_ID);
-    const femaleFiles = await listPublicFolderPdfs(FEMALE_FOLDER_ID);
-
-    lastDiscovered = { male: maleFiles.length, female: femaleFiles.length };
-    console.log(`[Drive sync] discovered male=${maleFiles.length}, female=${femaleFiles.length}`);
 
     let indexed = 0;
     let skipped = 0;
     let duplicates = 0;
     let failed = 0;
     let attempted = 0;
+    let discoveredMale = 0;
+    let discoveredFemale = 0;
+    let batchRemaining = DRIVE_SYNC_BATCH_SIZE;
 
-    // Process a small batch per run. Discovery may return thousands of files,
-    // but only the configured batch is selected and each selected PDF is handled
-    // strictly one at a time. Never create concurrent PDF-processing promises.
-    const maleCandidates: Array<{ file: DriveFile; sourceType: 'male'; folderId: string }> = [];
-    const femaleCandidates: Array<{ file: DriveFile; sourceType: 'female'; folderId: string }> = [];
+    // Stream each folder page-by-page. We never build maleFiles/femaleFiles
+    // arrays containing the whole 2,700+ file library.
+    const processPage = async (
+      files: DriveFile[],
+      sourceType: 'male' | 'female',
+      folderId: string,
+      pageNumber: number
+    ) => {
+      if (batchRemaining <= 0) return;
 
-    // Filter candidates sequentially as well. This avoids Promise.all/forEach
-    // fan-out over a 2,700+ file library and keeps memory bounded on Render.
-    for (const file of maleFiles) {
-      const source = getDriveSourceByFileId(file.id);
-      if (!source ||
+      for (const file of files) {
+        if (batchRemaining <= 0) break;
+
+        const source = getDriveSourceByFileId(file.id);
+        const needsProcessing =
+          !source ||
           source.status !== 'indexed' ||
           source.modified_time !== (file.modifiedTime || '') ||
-          Number(source.file_size || 0) !== Number(file.size || 0)) {
-        maleCandidates.push({ file, sourceType: 'male', folderId: MALE_FOLDER_ID });
+          Number(source.file_size || 0) !== Number(file.size || 0);
+
+        if (!needsProcessing) continue;
+
+        attempted++;
+        currentRun.attempted = attempted;
+        currentDriveItem = { sourceType, fileName: file.name, fileId: file.id };
+
+        console.log(
+          `[Drive sync] Processing file index ${attempted} of batch ${DRIVE_SYNC_BATCH_SIZE} (page ${pageNumber}): ${sourceType}: ${file.name} (${file.id})`
+        );
+
+        const result = await indexDriveFile(file, sourceType, folderId);
+        if (result.action === 'indexed') indexed++;
+        else if (result.action === 'skipped') skipped++;
+        else if (result.action === 'duplicate') duplicates++;
+        else failed++;
+
+        batchRemaining--;
+
+        // Persist before moving to the next PDF.
+        await syncDatabase().catch((err) => {
+          console.warn('Database sync after Drive candidate failed:', err);
+        });
       }
-    }
+    };
 
-    for (const file of femaleFiles) {
-      const source = getDriveSourceByFileId(file.id);
-      if (!source ||
-          source.status !== 'indexed' ||
-          source.modified_time !== (file.modifiedTime || '') ||
-          Number(source.file_size || 0) !== Number(file.size || 0)) {
-        femaleCandidates.push({ file, sourceType: 'female', folderId: FEMALE_FOLDER_ID });
+    // Male first, then female. Each page is discarded before the next page is fetched.
+    discoveredMale = await forEachPublicFolderPdfPage(
+      MALE_FOLDER_ID,
+      async (files, pageNumber) => {
+        const before = files.length;
+        await processPage(files, 'male', MALE_FOLDER_ID, pageNumber);
+        // Count only the current page; no page survives this callback.
+        discoveredMale += before;
       }
+    );
+
+    if (batchRemaining > 0) {
+      discoveredFemale = await forEachPublicFolderPdfPage(
+        FEMALE_FOLDER_ID,
+        async (files, pageNumber) => {
+          const before = files.length;
+          await processPage(files, 'female', FEMALE_FOLDER_ID, pageNumber);
+          discoveredFemale += before;
+        }
+      );
+    } else {
+      // The full count is still useful to the UI, so count the remaining
+      // folder pages without retaining their file metadata.
+      discoveredFemale = await forEachPublicFolderPdfPage(
+        FEMALE_FOLDER_ID,
+        async () => {}
+      );
     }
 
-    // Build only the small batch to run, alternating folders so one folder
-    // cannot starve the other. No Promise.all is used for file processing.
-    const candidates: Array<{
-      file: DriveFile;
-      sourceType: 'male' | 'female';
-      folderId: string;
-    }> = [];
-    let maleIndex = 0;
-    let femaleIndex = 0;
-
-    while (candidates.length < DRIVE_SYNC_BATCH_SIZE &&
-           (maleIndex < maleCandidates.length || femaleIndex < femaleCandidates.length)) {
-      if (maleIndex < maleCandidates.length) candidates.push(maleCandidates[maleIndex++]);
-      if (candidates.length >= DRIVE_SYNC_BATCH_SIZE) break;
-      if (femaleIndex < femaleCandidates.length) candidates.push(femaleCandidates[femaleIndex++]);
-    }
-
-    console.log(`[Drive sync] candidates male=${maleCandidates.length}, female=${femaleCandidates.length}, batch=${DRIVE_SYNC_BATCH_SIZE}`);
-
-    const totalToProcess = candidates.length;
-    let processingIndex = 0;
-
-    // IMPORTANT: strictly sequential. Do not replace this with Promise.all,
-    // forEach(async ...), map(async ...), or another parallel fan-out.
-    for (const { file, sourceType, folderId } of candidates) {
-      processingIndex++;
-      attempted++;
-      currentRun.attempted = attempted;
-      currentDriveItem = { sourceType, fileName: file.name, fileId: file.id };
-      console.log(`[Drive sync] Processing file index ${processingIndex} of ${totalToProcess}: ${sourceType}: ${file.name} (${file.id})`);
-
-      const result = await indexDriveFile(file, sourceType, folderId);
-      if (result.action === 'indexed') indexed++;
-      else if (result.action === 'skipped') skipped++;
-      else if (result.action === 'duplicate') duplicates++;
-      else failed++;
-
-      // Persist after every PDF. The next PDF does not start until this
-      // candidate's DB checkpoint has completed.
-      await syncDatabase().catch((err) => {
-        console.warn('Database sync after Drive candidate failed:', err);
-      });
-    }
+    lastDiscovered = { male: discoveredMale, female: discoveredFemale };
+    console.log(`[Drive sync] discovered male=${discoveredMale}, female=${discoveredFemale}`);
 
     console.log(`[Drive sync] finished attempted=${attempted}, indexed=${indexed}, skipped=${skipped}, duplicates=${duplicates}, failed=${failed}`);
 
@@ -535,9 +541,9 @@ export async function syncGoogleDriveFolders() {
       running: false,
       startedAt,
       finishedAt: new Date().toISOString(),
-      discovered: maleFiles.length + femaleFiles.length,
-      maleFiles: maleFiles.length,
-      femaleFiles: femaleFiles.length,
+      discovered: discoveredMale + discoveredFemale,
+      maleFiles: discoveredMale,
+      femaleFiles: discoveredFemale,
       batchSize: DRIVE_SYNC_BATCH_SIZE,
       attempted,
       indexed,
@@ -559,7 +565,6 @@ export async function syncGoogleDriveFolders() {
     currentDriveItem = null;
   }
 }
-
 export function getDriveSyncStatus() {
   return {
     configured: isDriveSyncConfigured(),
