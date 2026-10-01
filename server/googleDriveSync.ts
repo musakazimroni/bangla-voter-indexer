@@ -18,7 +18,15 @@ import { processPdfDocument, calculateFileHash } from './pdfProcessor.ts';
 const MALE_FOLDER_ID = process.env.GOOGLE_DRIVE_MALE_FOLDER_ID || '1dDynAaNbKCkHj3HZHElLHpH_3Yuhz0Fn';
 const FEMALE_FOLDER_ID = process.env.GOOGLE_DRIVE_FEMALE_FOLDER_ID || '1r4kRB7zk9OSO7Vv4HW0ul2pg1umgj7U8';
 const GOOGLE_DRIVE_API_KEY = process.env.GOOGLE_DRIVE_API_KEY || '';
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+const UPLOADS_DIR = path.join(process.env.DRIVE_TEMP_DIR || '/tmp/bangla-voter-indexer', 'drive-pdfs');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+function logDriveMemory(label: string) {
+  const m = process.memoryUsage();
+  console.log(
+    `[MEMORY] Drive ${label} | RSS=${(m.rss / 1024 / 1024).toFixed(2)} MB | HeapUsed=${(m.heapUsed / 1024 / 1024).toFixed(2)} MB | External=${(m.external / 1024 / 1024).toFixed(2)} MB | ArrayBuffers=${(m.arrayBuffers / 1024 / 1024).toFixed(2)} MB`
+  );
+}
 
 export interface DriveFile {
   id: string;
@@ -130,6 +138,7 @@ export async function listPublicFolderPdfs(folderId: string): Promise<DriveFile[
 }
 
 async function downloadDriveFile(file: DriveFile, destination: string) {
+  logDriveMemory(`before Drive download: ${file.name}`);
   const params: Record<string, string> = { alt: 'media' };
   if (file.resourceKey) params.resourceKey = file.resourceKey;
 
@@ -148,6 +157,9 @@ async function downloadDriveFile(file: DriveFile, destination: string) {
     stream.on('finish', () => resolve());
     stream.on('error', reject);
   });
+
+  const downloadedBytes = fs.statSync(destination).size;
+  logDriveMemory(`after Drive download: ${file.name} (${(downloadedBytes / 1024 / 1024).toFixed(2)} MB)`);
 }
 
 function safeFilename(name: string, fileId: string) {
@@ -187,8 +199,11 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
 
   const localPath = path.join(UPLOADS_DIR, safeFilename(file.name, file.id));
   try {
+    logDriveMemory(`before download/index setup: ${file.name}`);
     await downloadDriveFile(file, localPath);
+    logDriveMemory(`before SHA-256 hash: ${file.name}`);
     const fileHash = await calculateFileHash(localPath);
+    logDriveMemory(`after SHA-256 hash: ${file.name}`);
 
     const duplicate = findDocumentByHash(fileHash);
     if (duplicate) {
@@ -270,14 +285,17 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
       updated_at: now
     });
 
-    // Persist the document/source checkpoint BEFORE OCR starts. If Render
-    // restarts during a long scanned PDF, the next Drive sync can recover the
-    // document and resume from its last persisted page.
+    // Persist the document/source checkpoint BEFORE OCR starts. This sync is
+    // intentionally measured because Turso reconciliation can itself consume
+    // significant memory on a small Render instance.
+    logDriveMemory(`before Turso checkpoint sync: ${file.name}`);
     await syncDatabase().catch((err) => {
       console.warn('Database sync before Drive PDF processing failed:', err);
     });
+    logDriveMemory(`after Turso checkpoint sync: ${file.name}`);
 
     try {
+      logDriveMemory(`before processPdfDocument: ${file.name}`);
       const result = await processPdfDocument(documentId);
       upsertDriveSource({
         drive_file_id: file.id,
