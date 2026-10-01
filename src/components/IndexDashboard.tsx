@@ -43,26 +43,80 @@ export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefresh
 
   const handleDriveSync = async () => {
     setIsDriveSyncing(true);
-    setDriveNotice(null);
+    setDriveNotice('Google Drive সিংক শুরু হচ্ছে...');
+
     try {
       const res = await fetch('/api/drive/sync', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || 'Google Drive সিংক ব্যর্থ হয়েছে।');
+
+      if (!res.ok && res.status !== 202) {
+        throw new Error(data.error || 'Google Drive সিংক শুরু করা যায়নি।');
       }
-      const summary = [
-        data.message || 'Google Drive সিংক সম্পন্ন হয়েছে।',
-        `আবিষ্কৃত: ${Number(data.discovered || 0).toLocaleString('bn-BD')}টি`,
-        `এই রান: ${Number(data.attempted || 0).toLocaleString('bn-BD')}টি`,
-        `ইনডেক্স: ${Number(data.indexed || 0).toLocaleString('bn-BD')}টি`,
-        `স্কিপ: ${Number(data.skipped || 0).toLocaleString('bn-BD')}টি`,
-        `ডুপ্লিকেট: ${Number(data.duplicates || 0).toLocaleString('bn-BD')}টি`,
-        `ব্যর্থ: ${Number(data.failed || 0).toLocaleString('bn-BD')}টি`
-      ];
-      setDriveNotice(summary.join(' • '));
-      onRefreshStats();
+
+      setDriveNotice('Google Drive সিংক চলছে... PDF ডাউনলোড/OCR ব্যাকগ্রাউন্ডে চলছে।');
+
+      // The backend now returns immediately and processes PDFs in the
+      // background. Poll the status endpoint instead of waiting on a long
+      // HTTP request that could be terminated by a proxy timeout.
+      let consecutiveErrors = 0;
+
+      while (true) {
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+
+        try {
+          const statusRes = await fetch('/api/drive/status', { cache: 'no-store' });
+          const status = await statusRes.json().catch(() => ({}));
+
+          if (!statusRes.ok) {
+            throw new Error(status.error || 'Drive sync status পাওয়া যাচ্ছে না।');
+          }
+
+          consecutiveErrors = 0;
+
+          const run = status.currentRun || {};
+          const discovered = Number((status.lastDiscovered?.male || 0) + (status.lastDiscovered?.female || 0));
+          const current = status.currentDriveItem;
+
+          if (status.running) {
+            const currentText = current
+              ? ` • এখন: ${current.sourceType === 'male' ? 'পুরুষ' : 'মহিলা'} — ${current.fileName}`
+              : '';
+
+            setDriveNotice(
+              `Google Drive সিংক চলছে... আবিষ্কৃত: ${discovered.toLocaleString('bn-BD')}টি • এই রান: ${Number(run.attempted || 0).toLocaleString('bn-BD')}টি • ইনডেক্স: ${Number(run.indexed || 0).toLocaleString('bn-BD')}টি • ব্যর্থ: ${Number(run.failed || 0).toLocaleString('bn-BD')}টি${currentText}`
+            );
+
+            if (Number(run.attempted || 0) > 0 || Number(run.indexed || 0) > 0) {
+              await onRefreshStats();
+            }
+            continue;
+          }
+
+          const summary = [
+            'Google Drive সিংক সম্পন্ন হয়েছে।',
+            `আবিষ্কৃত: ${discovered.toLocaleString('bn-BD')}টি`,
+            `এই রান: ${Number(run.attempted || 0).toLocaleString('bn-BD')}টি`,
+            `ইনডেক্স: ${Number(run.indexed || 0).toLocaleString('bn-BD')}টি`,
+            `স্কিপ: ${Number(run.skipped || 0).toLocaleString('bn-BD')}টি`,
+            `ডুপ্লিকেট: ${Number(run.duplicates || 0).toLocaleString('bn-BD')}টি`,
+            `ব্যর্থ: ${Number(run.failed || 0).toLocaleString('bn-BD')}টি`
+          ];
+          setDriveNotice(summary.join(' • '));
+          await onRefreshStats();
+          break;
+        } catch (pollErr: any) {
+          consecutiveErrors++;
+          if (consecutiveErrors >= 3) {
+            throw new Error(
+              pollErr?.message ||
+              'সার্ভারের সাথে সংযোগ বিচ্ছিন্ন হয়েছে। Render Logs পরীক্ষা করো।'
+            );
+          }
+          setDriveNotice('সিংক চলছে... সার্ভারের অগ্রগতি পাওয়া যাচ্ছে না, আবার চেষ্টা করা হচ্ছে।');
+        }
+      }
     } catch (err: any) {
-      setDriveNotice(err?.message || 'Google Drive সিংক শুরু করতে সমস্যা হয়েছে।');
+      setDriveNotice(err?.message || 'Google Drive সিংক শুরু করতে সমস্যা হয়েছে। ০ রেজাল্ট দেখানো হয়নি—Render Logs পরীক্ষা করো।');
     } finally {
       setIsDriveSyncing(false);
     }
@@ -196,7 +250,7 @@ export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefresh
             </p>
 
             {driveNotice && (
-              <div className={`mb-3 p-3 rounded-xl border text-xs flex items-center space-x-2 ${isDriveSyncing ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+              <div className={`mb-3 p-3 rounded-xl border text-xs flex items-start space-x-2 ${isDriveSyncing ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
                 <RefreshCw className={`w-4 h-4 shrink-0 ${isDriveSyncing ? 'animate-spin text-blue-600' : 'text-emerald-600'}`} />
                 <span>{driveNotice}</span>
               </div>
