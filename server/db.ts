@@ -358,7 +358,26 @@ export function getAllDocuments(): DbDocument[] {
 /**
  * Insert or replace document record
  */
+function logDatabaseOperationError(operation: string, error: any, context: Record<string, unknown> = {}) {
+  console.error(`[DB ERROR] ${operation}`, {
+    ...context,
+    name: error?.name,
+    message: error?.message,
+    code: error?.code,
+    stack: error?.stack
+  });
+}
+
 export function saveDocument(doc: DbDocument) {
+  console.log('[DB] saveDocument begin', {
+    id: doc?.id,
+    fileName: doc?.original_name,
+    fileSize: doc?.file_size,
+    hashPresent: Boolean(doc?.file_hash),
+    pageCount: doc?.page_count,
+    processedPages: doc?.processed_pages,
+    status: doc?.status
+  });
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO documents (
       id, filename, original_name, file_path, file_hash, file_size,
@@ -368,28 +387,41 @@ export function saveDocument(doc: DbDocument) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  stmt.run(
-    doc.id,
-    doc.filename,
-    doc.original_name,
-    doc.file_path,
-    doc.file_hash,
-    doc.file_size,
-    doc.page_count,
-    doc.processed_pages,
-    doc.status,
-    doc.ocr_status,
-    doc.total_records,
-    doc.district || '',
-    doc.upazila || '',
-    doc.union_name || '',
-    doc.ward || '',
-    doc.voter_area || '',
-    doc.voter_area_code || '',
-    doc.error_message || '',
-    doc.created_at,
-    doc.updated_at
-  );
+  try {
+    stmt.run(
+      doc.id,
+      doc.filename,
+      doc.original_name,
+      doc.file_path,
+      doc.file_hash,
+      doc.file_size,
+      doc.page_count,
+      doc.processed_pages,
+      doc.status,
+      doc.ocr_status,
+      doc.total_records,
+      doc.district || '',
+      doc.upazila || '',
+      doc.union_name || '',
+      doc.ward || '',
+      doc.voter_area || '',
+      doc.voter_area_code || '',
+      doc.error_message || '',
+      doc.created_at,
+      doc.updated_at
+    );
+    console.log('[DB] saveDocument success', { id: doc.id });
+  } catch (error: any) {
+    logDatabaseOperationError('saveDocument INSERT OR REPLACE documents', error, {
+      id: doc?.id,
+      fileName: doc?.original_name,
+      hashPresent: Boolean(doc?.file_hash),
+      fileSize: doc?.file_size,
+      createdAtPresent: Boolean(doc?.created_at),
+      updatedAtPresent: Boolean(doc?.updated_at)
+    });
+    throw error;
+  }
 }
 
 /**
@@ -584,24 +616,42 @@ export function getDriveSourceByDocumentId(documentId: string): DbDriveSource | 
 }
 
 export function upsertDriveSource(source: DbDriveSource) {
-  db.prepare(`
-    INSERT OR REPLACE INTO drive_sources (
-      drive_file_id, source_type, folder_id, file_name, modified_time,
-      file_size, resource_key, document_id, status, error_message, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    source.drive_file_id,
-    source.source_type,
-    source.folder_id,
-    source.file_name,
-    source.modified_time || '',
-    Number(source.file_size || 0),
-    source.resource_key || '',
-    source.document_id || '',
-    source.status,
-    source.error_message || '',
-    source.updated_at
-  );
+  try {
+    db.prepare(`
+      INSERT OR REPLACE INTO drive_sources (
+        drive_file_id, source_type, folder_id, file_name, modified_time,
+        file_size, resource_key, document_id, status, error_message, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      source.drive_file_id,
+      source.source_type,
+      source.folder_id,
+      source.file_name,
+      source.modified_time || '',
+      Number(source.file_size || 0),
+      source.resource_key || '',
+      source.document_id || '',
+      source.status,
+      source.error_message || '',
+      source.updated_at
+    );
+    console.log('[DB] upsertDriveSource success', {
+      driveFileId: source.drive_file_id,
+      documentId: source.document_id,
+      status: source.status
+    });
+  } catch (error: any) {
+    logDatabaseOperationError('upsertDriveSource INSERT OR REPLACE drive_sources', error, {
+      driveFileId: source?.drive_file_id,
+      sourceType: source?.source_type,
+      folderId: source?.folder_id,
+      fileName: source?.file_name,
+      documentId: source?.document_id,
+      status: source?.status,
+      updatedAtPresent: Boolean(source?.updated_at)
+    });
+    throw error;
+  }
 }
 
 export function getDriveSyncStats() {
