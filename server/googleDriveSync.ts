@@ -333,6 +333,15 @@ async function indexDriveFile(file: DriveFile, sourceType: 'male' | 'female', fo
 let syncRunning = false;
 let lastSyncError = '';
 let lastDiscovered = { male: 0, female: 0 };
+let currentDriveItem: { sourceType: 'male' | 'female'; fileName: string; fileId: string } | null = null;
+let currentRun = {
+  startedAt: '',
+  attempted: 0,
+  indexed: 0,
+  skipped: 0,
+  duplicates: 0,
+  failed: 0
+};
 
 const DRIVE_SYNC_BATCH_SIZE = Math.max(
   1,
@@ -354,6 +363,15 @@ export async function syncGoogleDriveFolders() {
   syncRunning = true;
   lastSyncError = '';
   const startedAt = new Date().toISOString();
+  currentRun = {
+    startedAt,
+    attempted: 0,
+    indexed: 0,
+    skipped: 0,
+    duplicates: 0,
+    failed: 0
+  };
+  currentDriveItem = null;
 
   try {
     console.log(
@@ -418,6 +436,8 @@ export async function syncGoogleDriveFolders() {
 
     for (const { file, sourceType, folderId } of candidates) {
       attempted++;
+      currentRun.attempted = attempted;
+      currentDriveItem = { sourceType, fileName: file.name, fileId: file.id };
       console.log(`[Drive sync] processing ${sourceType}: ${file.name} (${file.id})`);
       const result = await indexDriveFile(file, sourceType, folderId);
       if (result.action === 'indexed') indexed++;
@@ -460,6 +480,7 @@ export async function syncGoogleDriveFolders() {
     };
   } finally {
     syncRunning = false;
+    currentDriveItem = null;
   }
 }
 
@@ -471,7 +492,9 @@ export function getDriveSyncStatus() {
     maleFolderId: MALE_FOLDER_ID,
     femaleFolderId: FEMALE_FOLDER_ID,
     ...getDriveSyncStats(),
-    lastDiscovered
+    lastDiscovered,
+    currentDriveItem,
+    currentRun
   };
 }
 
