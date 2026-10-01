@@ -50,7 +50,16 @@ export const IndexDashboard: React.FC<IndexDashboardProps> = ({ stats, onRefresh
       if (!res.ok) {
         throw new Error(data.error || 'Google Drive সিংক ব্যর্থ হয়েছে।');
       }
-      setDriveNotice(data.message || 'Google Drive সিংক সম্পন্ন হয়েছে।');
+      const summary = [
+        data.message || 'Google Drive সিংক সম্পন্ন হয়েছে।',
+        `আবিষ্কৃত: ${Number(data.discovered || 0).toLocaleString('bn-BD')}টি`,
+        `এই রান: ${Number(data.attempted || 0).toLocaleString('bn-BD')}টি`,
+        `ইনডেক্স: ${Number(data.indexed || 0).toLocaleString('bn-BD')}টি`,
+        `স্কিপ: ${Number(data.skipped || 0).toLocaleString('bn-BD')}টি`,
+        `ডুপ্লিকেট: ${Number(data.duplicates || 0).toLocaleString('bn-BD')}টি`,
+        `ব্যর্থ: ${Number(data.failed || 0).toLocaleString('bn-BD')}টি`
+      ];
+      setDriveNotice(summary.join(' • '));
       onRefreshStats();
     } catch (err: any) {
       setDriveNotice(err?.message || 'Google Drive সিংক শুরু করতে সমস্যা হয়েছে।');
