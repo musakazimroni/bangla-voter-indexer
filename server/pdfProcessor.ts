@@ -298,7 +298,9 @@ export async function processPdfDocument(
       logMemory('after Tesseract worker terminate');
     }
 
-    await loadedPdf.destroy().catch(() => {});
+    if (loadedPdf && typeof (loadedPdf as any).destroy === 'function') {
+      await (loadedPdf as any).destroy().catch(() => {});
+    }
     logMemory('after PDF.js destroy');
 
     updateDocumentProgress(
