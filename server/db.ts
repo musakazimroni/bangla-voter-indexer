@@ -46,9 +46,6 @@ export async function syncDatabase(): Promise<void> {
 // Initialize tables and indexes
 const SCHEMA_SQL = `
 
-    PRAGMA journal_mode = WAL;
-    PRAGMA synchronous = NORMAL;
-
     CREATE TABLE IF NOT EXISTS documents (
       id TEXT PRIMARY KEY,
       filename TEXT NOT NULL,
