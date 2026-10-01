@@ -159,11 +159,33 @@ async function startServer() {
     res.json(getDriveSyncStatus());
   });
 
-  app.post('/api/drive/sync', async (req, res) => {
+  app.post('/api/drive/sync', (req, res) => {
     try {
-      res.json(await syncGoogleDriveFolders());
+      const status = getDriveSyncStatus();
+      if (status.running) {
+        return res.status(202).json({
+          configured: status.configured,
+          running: true,
+          message: 'Google Drive সিংক ইতিমধ্যে চলছে।',
+          ...status
+        });
+      }
+
+      // Start indexing in the background so the HTTP request returns
+      // immediately instead of waiting for PDF download/OCR and hitting
+      // Render/proxy request timeouts.
+      void syncGoogleDriveFolders().catch((err) => {
+        console.error('Background Google Drive sync failed:', err);
+      });
+
+      return res.status(202).json({
+        configured: status.configured,
+        running: true,
+        message: 'Google Drive সিংক শুরু হয়েছে। এই পেজে অগ্রগতি দেখা যাবে।'
+      });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error('Drive sync start error:', err);
+      return res.status(500).json({ error: err.message });
     }
   });
 
