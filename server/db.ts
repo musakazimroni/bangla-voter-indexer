@@ -13,6 +13,11 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL || '';
 const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN || '';
 
+// Tracks an in-progress database synchronization so API requests can wait safely.
+// Remote-only Turso mode currently leaves this null, but ensureDatabaseReady
+// still supports the synchronization guard used by the database layer.
+let syncInFlight: Promise<void> | null = null;
+
 /**
  * Production database mode:
  * - When Turso credentials are configured, connect directly to the remote
