@@ -1,0 +1,713 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:css='false' b:version='2' class='v2' expr:dir='data:blog.languageDirection' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+<head>
+<meta content='width=device-width, initial-scale=1' name='viewport'/>
+<b:include data='blog' name='all-head-content'/>
+<link href='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Ccircle cx=%2732%27 cy=%2732%27 r=%2730%27 fill=%27%235e1a30%27/%3E%3Cpath d=%27M43 13a23 23 0 1 0 9 31a18 18 0 1 1-9-31z%27 fill=%27%23e3c565%27/%3E%3C/svg%3E' rel='icon' sizes='32x32' type='image/svg+xml'/>
+<link href='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Ccircle cx=%2732%27 cy=%2732%27 r=%2730%27 fill=%27%235e1a30%27/%3E%3Cpath d=%27M43 13a23 23 0 1 0 9 31a18 18 0 1 1-9-31z%27 fill=%27%23e3c565%27/%3E%3C/svg%3E' rel='icon' sizes='192x192' type='image/svg+xml'/>
+<title><data:blog.pageTitle/></title>
+<link href='https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&amp;family=Inter:wght@400;600;700;800&amp;display=swap' rel='stylesheet'/>
+<b:skin><![CDATA[
+/* Sajhmala Store Theme - original design and code, built for sajhmala.com */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#5e1a30;--navy2:#451223;--gold:#c9a227;--gold2:#e3c565;--yellow:#c9a227;--yellow2:#a8861d;--orange:#8e2a4e;--blue:#5e1a30;--ink:#1c2733;--mut:#6f5d66;--line:#efdfd2;--bg:#fffbf7;--card:#ffffff;--red:#c0392b;--green:#1e7d4f}
+html{scroll-behavior:smooth}
+body{font-family:'Hind Siliguri','Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.7}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button{font-family:inherit;cursor:pointer}
+/* Header */
+.zbd-header{position:sticky;top:0;z-index:60;background:#fff;box-shadow:0 2px 10px rgba(13,43,69,.08);border-bottom:1px solid var(--line)}
+.zbd-header-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:12px 14px}
+.sjm-logo-bn{font-family:Georgia,'Noto Serif Bengali',serif;font-size:44px;font-weight:700;color:#5e1a30;line-height:1}.sjm-logo-en{display:block;font-size:12px;letter-spacing:6px;color:#a8861d;margin-top:3px}.sjm-hero-art{background:linear-gradient(135deg,#451223,#5e1a30 45%,#8e2a4e);display:flex;align-items:center;justify-content:center;border-radius:14px;min-height:280px}.sjm-hero-art span{font-size:130px;color:#e3c565;line-height:1}.zbd-logo{flex-direction:column;align-items:flex-start;gap:0;display:flex;color:#222;font-weight:700;font-size:22px;letter-spacing:.3px;white-space:nowrap}
+.zbd-logo img{height:92px;width:auto}
+.zbd-search{flex:1;display:flex;background:#fff;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;max-width:560px;margin-left:auto;height:44px}
+.zbd-search input{flex:1;border:0;padding:8px 12px;font-family:inherit;font-size:16px;outline:none;min-width:0}
+.zbd-search button{background:var(--yellow);border:0;color:#222;font-weight:700;padding:0 16px;font-size:15px}
+.zbd-search select{border:0;border-right:1.5px solid var(--line);background:#f7f7f7;color:#222;font-family:inherit;font-size:14px;font-weight:600;padding:0 6px;max-width:118px;outline:none;cursor:pointer}
+.zbd-hotline{display:flex;align-items:center;gap:8px}
+.zbd-hl-ic{font-size:23px;color:var(--yellow2);line-height:1}
+.zbd-hl-tx{font-size:12px;color:var(--mut);line-height:1.2}
+.zbd-hl-tx b{display:block;font-size:15px;color:var(--yellow2);font-weight:800}
+@media(max-width:900px){.zbd-hotline{display:none}}
+.zbd-head-actions{display:flex;gap:8px;margin-left:auto}
+.zbd-iconbtn{position:relative;background:#fff;border:1.5px solid var(--line);color:#222;border-radius:9px;padding:8px 12px;font-size:14px;font-weight:600;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+.zbd-iconbtn .zbd-count{position:absolute;top:-7px;right:-7px;background:var(--yellow);color:#222;font-size:11px;font-weight:800;min-width:19px;height:19px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.zbd-nav{background:#fff;border-bottom:1px solid var(--line)}
+.zbd-nav-in{max-width:1200px;margin:0 auto;display:flex;gap:4px;padding:0 10px;overflow-x:auto;scrollbar-width:none}
+.zbd-nav-in::-webkit-scrollbar{display:none}
+.zbd-nav a{padding:10px 12px;font-weight:600;font-size:15px;color:var(--ink);white-space:nowrap;border-bottom:3px solid transparent}
+.zbd-nav a:hover{color:#222;border-bottom-color:var(--yellow)}
+/* Hero */
+.zbd-hero{max-width:1200px;margin:24px auto 0;padding:0 14px}
+.zbd-hero-in{background:linear-gradient(120deg,#ffffff 55%,#f7f7f7);border:1px solid var(--line);border-radius:16px;color:#222;padding:38px 30px;position:relative;overflow:hidden}
+.zbd-hero-in:after{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;background:rgba(252,184,0,.16)}
+.zbd-hero h1{font-size:32px;line-height:1.25;margin-bottom:8px;letter-spacing:.2px}
+.zbd-hero h1 span{background:var(--yellow);color:#222;padding:0 8px;border-radius:6px}
+.zbd-hero p{color:var(--mut);font-size:15px;max-width:560px}
+.zbd-hero .zbd-hero-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.zbd-hero .zbd-hero-badges span{background:#fff;border:1px solid var(--yellow);color:#222;padding:5px 11px;border-radius:20px;font-size:13px;font-weight:600}
+.zbd-hero-in{display:flex;gap:22px;align-items:center}
+.zbd-hero-txt{flex:1;min-width:0;position:relative;z-index:1}
+.zbd-hero-img{flex:0 0 300px;height:210px;border-radius:12px;overflow:hidden;border:2px solid rgba(252,184,0,.6);position:relative;z-index:1}
+.zbd-hero-img img{width:100%;height:100%;object-fit:cover}
+.zbd-hero-btn{display:inline-block;margin-top:16px;background:var(--yellow);color:#222;font-weight:800;padding:11px 22px;border-radius:9px;font-size:15px}
+@media(max-width:620px){.zbd-hero-in{flex-direction:column;align-items:stretch}.zbd-hero-img{flex:none;height:160px}}
+.zbd-topbar{background:#fff;color:var(--mut);border-bottom:1px solid var(--line);text-align:center;font-size:12px;font-weight:600;padding:4px 10px}
+@media(max-width:620px){.zbd-topbar{font-size:11.5px;padding:4px 8px}.zbd-tb-phone a{color:inherit;text-decoration:none;font-weight:700}}
+.zbd-sections{max-width:1200px;margin:0 auto;padding:6px 14px 0}
+.zbd-sec-title{font-size:20px;font-weight:600;margin:24px 0 14px;display:flex;align-items:center;gap:10px}
+.zbd-sec-title:after{content:'';flex:1;height:2px;background:linear-gradient(90deg,var(--yellow),transparent)}
+.zbd-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.zbd-cat-tile{position:relative;border-radius:18px;overflow:hidden;display:block;aspect-ratio:16/10;background:#222}
+.zbd-cat-tile img{width:100%;height:100%;object-fit:cover;opacity:.82}
+.zbd-cat-tile span{position:absolute;left:0;right:0;bottom:0;padding:22px 12px 12px;color:#fff;font-weight:700;font-size:16px;background:linear-gradient(transparent,rgba(6,25,43,.85))}
+.zbd-cat-tile small{display:block;font-weight:500;font-size:12.5px;color:#ecd28a}
+.zbd-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.zbd-row::-webkit-scrollbar{display:none}
+.zbd-row .zbd-card{flex:0 0 208px;scroll-snap-align:start}
+.zbd-trust{max-width:1200px;margin:24px auto 6px;padding:0 14px}
+.zbd-trust-in{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.zbd-trust-item{background:#fff;border:1px solid var(--line);border-top:3px solid var(--yellow);border-radius:10px;padding:14px}
+.zbd-trust-item b{display:flex;align-items:center;gap:8px;font-size:15.5px;margin-bottom:4px;color:#222}
+.zbd-trust-item b:before{content:'\2713';flex:0 0 auto;width:21px;height:21px;border-radius:50%;background:var(--yellow);color:#222;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.zbd-trust-item p{font-size:13.5px;color:var(--mut)}
+@media(max-width:620px){.zbd-cats{grid-template-columns:repeat(2,1fr)}.zbd-row .zbd-card{flex-basis:158px}.zbd-trust-in{grid-template-columns:repeat(2,1fr)}.zbd-sec-title{font-size:20px}}
+/* Store */
+.zbd-wrap{max-width:1200px;margin:0 auto;padding:24px 14px 8px}
+.zbd-chips{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 12px;scrollbar-width:none}
+.zbd-chips::-webkit-scrollbar{display:none}
+.zbd-chip{flex:0 0 auto;border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:22px;padding:9px 18px;font-weight:600;font-size:14.5px;min-height:40px}
+.zbd-chip.on{background:var(--yellow);color:#222;border-color:var(--yellow)}
+.zbd-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 12px}
+.zbd-toolbar .zbd-result{color:var(--mut);font-size:14px}
+.zbd-toolbar select{border:1.5px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-weight:600;background:#fff}
+.zbd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+#zbd-more{margin:20px auto 4px;background:var(--yellow);color:#222;border:0;border-radius:9px;padding:12px 30px;font-weight:800;font-size:15.5px;cursor:pointer}
+@media(max-width:900px){.zbd-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:620px){.zbd-grid{grid-template-columns:repeat(2,1fr);gap:10px}.zbd-logo{font-size:19px;margin-left:8px}.zbd-logo img{height:46px}.sjm-logo-bn{font-size:26px}.sjm-logo-en{font-size:9px;letter-spacing:4px;margin-top:2px}.sjm-hero-art{min-height:170px}.sjm-hero-art span{font-size:80px}.zbd-hero h1{font-size:22px}.zbd-header-in{flex-wrap:wrap;gap:8px;padding:8px 12px}.zbd-search{display:flex;order:3;flex:1 1 100%;max-width:none}.zbd-iconbtn{padding:7px 8px;font-size:13px;min-height:40px}}
+.zbd-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.zbd-card:hover{box-shadow:0 8px 22px rgba(0,0,0,.12)}
+.zbd-card .zbd-thumb{position:relative;aspect-ratio:3/4;background:#eef2f5;overflow:hidden}
+.zbd-card .zbd-thumb img{width:100%;height:100%;object-fit:cover}
+.zbd-off{position:absolute;left:8px;top:8px;background:var(--orange);color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px}
+.zbd-wish{position:absolute;right:8px;top:8px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:17px;line-height:1;color:#8a97a5}
+.zbd-wish.on{color:#e0245e}
+.zbd-card .zbd-info{padding:10px 11px 12px;display:flex;flex-direction:column;gap:5px;flex:1}
+.zbd-card h3{font-size:15px;line-height:1.35;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:41px}
+.zbd-price{font-size:17px;font-weight:700;color:#222}
+.zbd-price s{color:#97a5b1;font-weight:500;font-size:14px;margin-left:6px}
+.zbd-csizes{font-size:12.5px;color:#7c8a97;margin-top:2px}
+.zbd-card .zbd-add{margin-top:auto;background:var(--yellow);color:#222;border:1.5px solid var(--yellow);border-radius:8px;padding:9px 10px;font-weight:700;font-size:14.5px}
+.zbd-card .zbd-add:active{background:var(--yellow2);color:#222}
+.zbd-empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:34px 16px;text-align:center;color:var(--mut)}
+.zbd-loading{text-align:center;color:var(--mut);padding:36px 0}
+/* Item page */
+.zbd-post{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;max-width:860px;margin:16px auto}
+.zbd-post h1{font-size:25px;line-height:1.3;margin-bottom:10px}
+.zbd-post .post-body{font-size:16.5px}
+.zbd-post .post-body img{border-radius:10px;margin:10px auto}
+.zbd-heroimg{margin:6px 0 4px}.zbd-heroimg img{width:100%;border-radius:12px;display:block}
+.zbd-post .post-body li{margin-left:18px}
+.zbd-buybox{border:1.5px solid var(--yellow);background:#fffdf4;border-radius:14px;padding:18px;margin:16px 0;box-shadow:0 2px 10px rgba(252,184,0,.12)}
+.zbd-buybox .zbd-bp{font-size:26px;font-weight:800;color:#222}
+.zbd-buybox .zbd-bp s{font-size:17px;color:#97a5b1;font-weight:500;margin-left:8px}
+.zbd-buybox .zbd-save{display:inline-block;background:var(--orange);color:#fff;font-size:12.5px;font-weight:700;border-radius:5px;padding:2px 8px;margin-left:8px;vertical-align:middle}
+.zbd-buybox label{font-weight:700;font-size:14.5px;display:block;margin:12px 0 6px}
+.zbd-sizes{display:flex;gap:8px;flex-wrap:wrap}
+.zbd-size{border:1.5px solid var(--line);background:#fff;border-radius:8px;padding:10px 16px;font-weight:700;min-width:52px;min-height:44px}
+.zbd-size.on{border-color:#222;background:#222;color:#fff}
+.zbd-qtyrow{display:flex;align-items:center;gap:12px;margin-top:4px}
+.zbd-qty{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden}
+.zbd-qty button{width:42px;height:44px;border:0;background:#f1f5f8;font-size:19px;font-weight:700}
+.zbd-qty span{min-width:40px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.zbd-buybtns{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.zbd-btn{border:0;border-radius:9px;padding:12px 18px;font-weight:700;font-size:16px;min-height:42px}
+.zbd-btn-cart{background:var(--orange);border:1.5px solid var(--orange);color:#fff}
+.zbd-btn-order{background:var(--blue);color:#fff;flex:1;min-width:170px}
+.zbd-codline{margin-top:12px;color:var(--green);font-weight:600;font-size:14.5px}
+.zbd-related{max-width:1200px;margin:0 auto;padding:0 14px 8px}
+.zbd-related h2{font-size:20px;margin:8px 0 12px}
+/* Drawer / cart */
+.zbd-overlay{position:fixed;inset:0;background:rgba(8,24,40,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
+.zbd-overlay.on{opacity:1;pointer-events:auto}
+.zbd-stickybar{display:none}
+@media(max-width:900px){.zbd-stickybar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:85;background:#fff;border-top:2px solid var(--yellow);padding:7px 14px calc(7px + env(safe-area-inset-bottom));align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -3px 14px rgba(0,0,0,.12)}.zbd-stickybar .zbd-sb-price{color:#222;font-weight:800;font-size:17px}.zbd-stickybar button{background:var(--blue);color:#fff;border:0;border-radius:9px;padding:10px 18px;font-weight:800;font-size:15px}.zbd-post{margin-bottom:70px}body{padding-bottom:96px}.zbd-header.zbd-compact .zbd-search{display:none}}
+.zbd-wafloat{position:fixed;right:16px;bottom:16px;z-index:88;width:54px;height:54px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.zbd-wafloat svg{width:28px;height:28px;fill:#fff}
+.zbd-drawer{position:fixed;top:0;right:0;height:100dvh;width:min(430px,94vw);background:#fff;z-index:95;transform:translateX(105%);transition:transform .25s;display:block;overflow-y:auto;box-shadow:-6px 0 24px rgba(0,0,0,.2)}
+.zbd-drawer.on{transform:translateX(0)}
+.zbd-drawer header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:5}
+.zbd-drawer header h2{font-size:19px}
+.zbd-drawer .zbd-close{background:#f1f5f8;border:0;width:34px;height:34px;border-radius:8px;font-size:17px}
+.zbd-items{padding:12px 16px}
+.zbd-item{display:flex;gap:10px;border-bottom:1px solid var(--line);padding:10px 0}
+.zbd-item img{width:62px;height:62px;object-fit:cover;border-radius:8px}
+.zbd-item .zbd-it{flex:1;min-width:0}
+.zbd-item .zbd-it h4{font-size:14.5px;line-height:1.3;font-weight:600}
+.zbd-item .zbd-it .zbd-meta{color:var(--mut);font-size:13px}
+.zbd-item .zbd-it .zbd-row{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.zbd-item .zbd-rm{background:none;border:0;color:var(--red);font-size:13px;font-weight:600}
+.zbd-drawer footer{border-top:1px solid var(--line);padding:14px 16px;background:#fbfcfd}
+.zbd-total{display:flex;justify-content:space-between;font-size:17px;font-weight:800;margin-bottom:4px}
+.zbd-total span:last-child{white-space:nowrap}
+.zbd-drawer-body{overflow-x:hidden}
+.zbd-dnote{color:var(--mut);font-size:13px;margin-bottom:10px}
+.zbd-form input,.zbd-form textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:11px;font-family:inherit;font-size:16px;margin-bottom:9px;outline:none}
+.zbd-form input:focus,.zbd-form textarea:focus{border-color:var(--yellow2)}
+.zbd-payline{display:flex;justify-content:space-between;background:#eef7f1;border:1px solid #cfe7d8;border-radius:8px;padding:9px 11px;font-weight:700;color:var(--green);margin-bottom:10px;font-size:14.5px}
+.zbd-cod{width:100%;background:var(--yellow);color:#222;border:0;border-radius:9px;padding:13px;font-size:16.5px;font-weight:800;margin-bottom:9px}
+.zbd-cod:disabled{background:#e8ddae}
+.zbd-wa{width:100%;background:#fff;color:#178a4c;border:1.5px solid #22a95c;border-radius:9px;padding:11px;font-size:15.5px;font-weight:700}
+.zbd-wa:disabled{opacity:.5}
+.zbd-success{display:none;background:#eef7f1;border:1px solid #bfe3cd;color:#14532d;border-radius:9px;padding:12px;font-weight:600;margin-bottom:10px;text-align:center}
+.zbd-success.on{display:block}
+.zbd-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(140px);opacity:0;visibility:hidden;background:#222;color:#fff;padding:11px 20px;border-radius:24px;font-weight:600;z-index:120;transition:transform .25s,opacity .25s;box-shadow:0 8px 20px rgba(0,0,0,.25);max-width:92vw;text-align:center}
+.zbd-toast.on{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible}.blog-pager,.home-link{display:none!important}.zbd-drawer{overflow-x:hidden}.zbd-searchbtn{display:none}.zbd-header.zbd-compact .zbd-searchbtn{display:inline-flex}#zbd-drawer-close{min-width:40px;min-height:40px}.zbd-sg-link{font-size:13.5px;font-weight:700;color:var(--blue);margin-left:8px}.zbd-trustline{margin-top:9px;font-size:13.5px;line-height:1.55;color:var(--mut)}.zbd-trustline a{color:var(--blue);font-weight:700}.zbd-freebar{font-size:13.5px;font-weight:700;color:#7a5b00;margin:0 0 8px}.zbd-freebar:empty{display:none}.zbd-fb-track{height:7px;background:#f3e5ab;border-radius:99px;margin-top:5px;overflow:hidden}.zbd-fb-fill{height:100%;background:var(--yellow);border-radius:99px}.zbd-sizes.zbd-alert{outline:2px solid #e0245e;outline-offset:3px;border-radius:8px}#PageList1{display:none!important}
+/* Footer */
+.zbd-footer{background:#fff;color:var(--ink);margin-top:24px;border-top:3px solid var(--yellow)}
+.zbd-footer-in{max-width:1200px;margin:0 auto;padding:26px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:700px){.zbd-footer-in{grid-template-columns:1fr}}
+@media(max-width:620px){.zbd-post{padding:14px}.zbd-post h1{font-size:21px}.zbd-hero-in{padding:24px 18px}.zbd-buybtns{flex-direction:column}.zbd-btn-order{order:-1;width:100%}.zbd-btn-cart{width:100%}.zbd-buybox{padding:14px}}
+.zbd-footer h3{color:#222;font-size:17px;margin-bottom:8px}
+.zbd-footer a{display:block;padding:3px 0;color:var(--ink)}
+.zbd-footer a:hover{color:#000;font-weight:600}
+.zbd-copy{background:#fff;border-top:1px solid var(--line);color:var(--mut);text-align:center;font-size:13.5px;padding:11px}
+.zbd-product{display:none}
+#Header1,#Header1_headerimg{display:none!important}
+#ReportAbuse1,#BlogSearch1,#BlogArchive1,#Label1,#Attribution1,#PopularPosts1,#Followers1,#Profile1,#TextList1{display:none!important}
+.section,.widget{margin:0}
+
+/* === Sajhmala v1.3: research-based feminine skin + radical simplicity === */
+.zbd-hero-in{background:linear-gradient(120deg,#fffaf4 55%,#fbeef0);border-color:#f0d9cf;border-radius:22px;flex-direction:column;align-items:center;text-align:center}
+.zbd-hero-in:after{background:rgba(194,86,124,.14)}
+.zbd-hero h1,.zbd-sec-title{font-family:Georgia,'Noto Serif Bengali',serif}
+.sjm-hero-art{position:relative;border-radius:20px;margin:6px auto 0;width:100%;max-width:600px}
+.sjm-hero-art:before{content:'\2740  \2740  \2740';position:absolute;top:12px;left:0;right:0;text-align:center;color:#e3c565;letter-spacing:10px;font-size:15px}
+.zbd-card{border-radius:18px;border-color:#f3e2d5;box-shadow:0 4px 14px rgba(94,26,48,.07)}
+.zbd-price{color:#8e2a4e;font-size:18px}
+.zbd-sec-title:before{content:'\2740';color:#c2567c;font-size:15px}
+.zbd-sec-title:after{background:linear-gradient(90deg,#c2567c,transparent)}
+.zbd-btn-cart,.zbd-btn-order,.zbd-add{border-radius:999px;min-height:46px;font-size:15px}
+.zbd-btn-cart{background:#fff;color:#5e1a30;border:1.5px solid #5e1a30}
+.zbd-add{background:#fbeef0;color:#5e1a30;border:1.5px solid #e5b8c6}
+.zbd-wish,#zbd-wish-btn{display:none!important}
+#zbd-f-note{display:none}
+input,select,textarea{font-size:16px!important;border-radius:10px}
+:focus-visible{outline:2px solid #c9a227;outline-offset:2px}
+
+@media(max-width:620px){
+.zbd-stickybar button{border-radius:999px;min-height:46px;font-size:16px;padding:10px 22px}
+.zbd-stickybar .zbd-sb-price{color:#5e1a30;font-size:18px}
+.zbd-hero-in{padding:24px 14px}
+.zbd-sec-title{font-size:20px}
+}
+/* === Sajhmala v1.6 polish: desktop spacing rhythm + uniform card button (brand colours unchanged) === */
+@media(min-width:621px){
+.zbd-sec-title{font-size:26px;margin-top:40px}
+.zbd-hero{margin-top:40px}
+.zbd-trust{margin-top:40px}
+.zbd-wrap{padding-top:40px}
+.zbd-footer{margin-top:40px}
+}
+.zbd-card .zbd-add{height:40px;min-height:40px;padding-top:0;padding-bottom:0;display:flex;align-items:center;justify-content:center}
+/* === Sajhmala v1.7: product image gallery (product pages only, built by JS; brand colours unchanged) === */
+.zbd-gallery{margin:6px 0 4px}
+.zbd-gal-main{position:relative;border-radius:12px;overflow:hidden;background:var(--line);cursor:zoom-in}
+.zbd-gal-main img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.zbd-gal-thumbs{display:flex;gap:8px;margin-top:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.zbd-gal-thumbs::-webkit-scrollbar{display:none}
+.zbd-gal-th{flex:0 0 auto;width:64px;height:64px;padding:0;border:2px solid var(--line);border-radius:10px;overflow:hidden;background:var(--line);cursor:pointer}
+.zbd-gal-th img{width:100%;height:100%;object-fit:cover;display:block}
+.zbd-gal-th.on{border-color:var(--gold);outline:2px solid var(--gold);outline-offset:1px}
+.zbd-gal-hidden{display:none!important}
+.zbd-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:130;display:none;align-items:center;justify-content:center}
+.zbd-lightbox.on{display:flex}
+.zbd-lightbox>img{max-width:100vw;max-height:100dvh;object-fit:contain;display:block}
+.zbd-lb-btn{position:absolute;background:rgba(255,255,255,.14);color:var(--card);border:0;border-radius:50%;width:44px;height:44px;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.zbd-lb-close{top:14px;right:14px;font-size:28px}
+.zbd-lb-prev{left:10px;top:50%;transform:translateY(-50%)}
+.zbd-lb-next{right:10px;top:50%;transform:translateY(-50%)}
+.zbd-lb-open{overflow:hidden}
+@media(max-width:620px){.zbd-gal-th{width:56px;height:56px}}
+]]></b:skin>
+</head>
+<body>
+<div class='zbd-topbar'>সারা দেশে ক্যাশ অন ডেলিভারি &#8212; পণ্য হাতে পেয়ে টাকা পরিশোধ করুন <span class='zbd-tb-phone'>| হেল্পলাইন (২৪ ঘণ্টা): <a href='tel:+8801319400185'>01319-400185</a></span></div>
+<header class='zbd-header'>
+  <div class='zbd-header-in'>
+    <a class='zbd-logo' expr:href='data:blog.homepageUrl'><span class='sjm-logo-bn'>সাঁঝমালা</span><span class='sjm-logo-en'>SAJHMALA</span></a>
+    <form class='zbd-search' id='zbd-search-form'><select aria-label='ক্যাটাগরি' id='zbd-cat-select'><option value='__all'>সব</option></select><input id='zbd-search-input' placeholder='পণ্য খুঁজুন...' type='text'/><button type='submit'>খুঁজুন</button></form>
+    <div class='zbd-hotline'><span class='zbd-hl-ic'>&#9742;</span><span class='zbd-hl-tx'>Hotline<a href='tel:+8801319400185' style='color:inherit;text-decoration:none'><b>01319400185</b></a></span></div>
+      <div class='zbd-head-actions'>
+      <button class='zbd-iconbtn zbd-searchbtn' id='zbd-search-btn' title='খুঁজুন'>&#128269;</button><button class='zbd-iconbtn' id='zbd-wish-btn'>&#10084;&#65038; উইশলিস্ট <span class='zbd-count' id='zbd-wish-count'>0</span></button>
+      <button class='zbd-iconbtn' id='zbd-cart-btn'>কার্ট <span class='zbd-count' id='zbd-cart-count'>0</span></button>
+    </div>
+  </div>
+</header>
+<nav class='zbd-nav'><div class='zbd-nav-in' id='zbd-nav'>
+  <a expr:href='data:blog.homepageUrl'>হোম</a>
+  <a href='/p/about-us.html'>আমাদের সম্পর্কে</a>
+  <a href='/p/contact.html'>যোগাযোগ</a>
+  <a href='/p/delivery-and-return.html'>ডেলিভারি ও রিটার্ন</a>
+  <a href='/p/size-guide.html'>সাইজ গাইড</a>
+  <a href='https://www.facebook.com/dokanbox'>ফেসবুক পেজ</a>
+</div></nav>
+<b:section class='zbd-main' id='main' showaddelement='yes'>
+  <b:widget id='Blog1' locked='true' title='Blog Posts' type='Blog' version='2'>
+    <b:widget-settings>
+      <b:widget-setting name='showDateHeader'>false</b:widget-setting>
+      <b:widget-setting name='style.textcolor'>#000000</b:widget-setting>
+      <b:widget-setting name='showShareButtons'>false</b:widget-setting>
+      <b:widget-setting name='showCommentLink'>false</b:widget-setting>
+      <b:widget-setting name='style.urlcolor'>#000000</b:widget-setting>
+      <b:widget-setting name='showAuthor'>false</b:widget-setting>
+      <b:widget-setting name='style.linkcolor'>#000000</b:widget-setting>
+      <b:widget-setting name='style.unittype'>TextAndImage</b:widget-setting>
+      <b:widget-setting name='style.bgcolor'>#ffffff</b:widget-setting>
+      <b:widget-setting name='showAuthorProfile'>false</b:widget-setting>
+      <b:widget-setting name='style.layout'>1x1</b:widget-setting>
+      <b:widget-setting name='showLabels'>true</b:widget-setting>
+      <b:widget-setting name='showLocation'>false</b:widget-setting>
+      <b:widget-setting name='showTimestamp'>false</b:widget-setting>
+      <b:widget-setting name='postsPerAdBreak'>0</b:widget-setting>
+      <b:widget-setting name='showInlineAds'>false</b:widget-setting>
+      <b:widget-setting name='showBacklinks'>false</b:widget-setting>
+    </b:widget-settings>
+    <b:includable id='main'>
+      <b:if cond='data:view.isSingleItem'>
+        <b:loop values='data:posts' var='post'>
+          <div class='zbd-post'>
+            <h1><data:post.title/></h1>
+            <div id='zbd-buybox-slot'></div>
+            <div class='zbd-stickybar'><span class='zbd-sb-price' id='zbd-sb-price'></span><button id='zbd-sb-order' type='button'>অর্ডার করুন (COD)</button></div>
+            <div class='post-body'><data:post.body/></div>
+          </div>
+          <div class='zbd-related' id='zbd-related' style='display:none'><h2>আরও পণ্য দেখুন</h2><div class='zbd-grid' id='zbd-related-grid'></div></div>
+        </b:loop>
+      <b:elseif cond='data:view.isPage'/>
+        <b:loop values='data:posts' var='post'>
+          <div class='zbd-post'>
+            <h1><data:post.title/></h1>
+            <div class='post-body'><data:post.body/></div>
+          </div>
+        </b:loop>
+      <b:else/>
+        <div class='zbd-hero'><div class='zbd-hero-in'>
+          <div class='zbd-hero-txt'>
+          <h1>মেয়েদের পোশাকের <span>নতুন কালেকশন</span></h1>
+          <p>শাড়ি, থ্রি পিস, ড্রেস, ওড়না আর ব্যাগের যত্নে বাছাই করা কালেকশন। পণ্য হাতে পেয়ে টাকা পরিশোধ করুন, সারা দেশে ক্যাশ অন ডেলিভারি।</p>
+          <div class='zbd-hero-badges'><span>ক্যাশ অন ডেলিভারি</span><span>WhatsApp-এ সহজ অর্ডার</span><span>৭ দিনের রিটার্ন (পোশাক)</span></div>
+          <a class='zbd-hero-btn' href='#zbd-sections'>কালেকশন দেখুন</a>
+          </div>
+          <div class='zbd-hero-img sjm-hero-art'><span>&#9790;</span></div>
+        </div></div>
+        <div class='zbd-trust'><div class='zbd-trust-in'>
+          <div class='zbd-trust-item'><b>ক্যাশ অন ডেলিভারি</b><p>পণ্য হাতে পেয়ে যাচাই করে তারপর টাকা পরিশোধ করুন।</p></div>
+          <div class='zbd-trust-item'><b>সারা দেশে ডেলিভারি</b><p>বাংলাদেশের যেকোনো জেলায় হোম ডেলিভারির সুবিধা।</p></div>
+          <div class='zbd-trust-item'><b>৭ দিনের রিটার্ন</b><p>পোশাকের ক্ষেত্রে শর্তসাপেক্ষে রিটার্ন ও এক্সচেঞ্জ সুবিধা।</p></div>
+          <div class='zbd-trust-item'><b>সঠিক পণ্য তথ্য</b><p>আসল ছবি, সঠিক সাইজ, রং ও দাম, কোনো লুকানো তথ্য নয়।</p></div>
+        </div></div>
+        <div class='zbd-sections' id='zbd-sections'></div>
+        <div class='zbd-wrap'>
+          <div class='zbd-chips' id='zbd-chips'></div>
+          <div class='zbd-toolbar'><span class='zbd-result' id='zbd-result'></span>
+            <select id='zbd-sort'><option value='new'>নতুন আগে</option><option value='low'>দাম: কম থেকে বেশি</option><option value='high'>দাম: বেশি থেকে কম</option></select>
+          </div>
+          <div class='zbd-loading' id='zbd-loading'>পণ্য লোড হচ্ছে...</div>
+          <div class='zbd-grid' id='zbd-grid'></div>
+          <button id='zbd-more' style='display:none'>আরও পণ্য দেখুন</button>
+          <div class='zbd-empty' id='zbd-noresult' style='display:none'>কোনো পণ্য পাওয়া যায়নি। অন্য নামে খুঁজে দেখুন।</div>
+        </div>
+        </b:if>
+    </b:includable>
+  </b:widget>
+</b:section>
+<footer class='zbd-footer'>
+  <div class='zbd-footer-in'>
+    <div><h3>সাঁঝমালা</h3><p>মেয়েদের পোশাকের নির্ভরযোগ্য অনলাইন শপ।</p><p style='margin-top:8px'>তেঘরিয়া, নতুনহাট, ঝিকরগাছা-৭৪২০, যশোর</p><p style='margin-top:6px'>স্বত্বাধিকারী: মুসা কাজীম</p></div>
+    <div><h3>গুরুত্বপূর্ণ লিংক</h3>
+      <a href='/p/about-us.html'>আমাদের সম্পর্কে</a>
+      <a href='/p/privacy-policy.html'>গোপনীয়তা নীতি</a>
+      <a href='/p/terms-and-conditions.html'>শর্তাবলী</a>
+      <a href='/p/delivery-and-return.html'>ডেলিভারি ও রিটার্ন</a>
+      <a href='/p/size-guide.html'>সাইজ গাইড</a>
+    </div>
+    <div><h3>যোগাযোগ</h3><p>হেল্পলাইন (২৪ ঘণ্টা): <a href='tel:+8801319400185'>+8801319400185</a></p><p>WhatsApp অর্ডার: <a href='https://wa.me/8801571050562' target='_blank'>+8801571050562</a></p><p>ইমেইল: help.sajhmala@gmail.com</p><a href='https://www.facebook.com/dokanbox'>ফেসবুক পেজ</a></div>
+  </div>
+  <div class='zbd-copy'>© ২০২৬ সাঁঝমালা। সর্বস্বত্ব সংরক্ষিত।</div>
+</footer>
+<div class='zbd-overlay' id='zbd-overlay'></div>
+<aside class='zbd-drawer' id='zbd-drawer'>
+  <header><h2>আপনার কার্ট</h2><button class='zbd-close' id='zbd-drawer-close'>&#215;</button></header>
+  <div class='zbd-items' id='zbd-items'></div>
+  <footer>
+    <div class='zbd-total'><span>পণ্যের মূল্য</span><span id='zbd-subtotal'>৳0</span></div>
+    <div class='zbd-total'><span>ডেলিভারি চার্জ</span><span id='zbd-delivery'>৳120</span></div>
+    <div class='zbd-total'><span>সর্বমোট</span><span id='zbd-total'>৳0</span></div>
+    <div class='zbd-dnote'>ডেলিভারি চার্জ ফ্ল্যাট ৳120। ৳1,000 বা তার বেশি অর্ডারে ডেলিভারি সম্পূর্ণ ফ্রি।</div>
+    <div class='zbd-freebar' id='zbd-freebar'></div><form class='zbd-form' id='zbd-form'>
+      <input autocomplete='name' id='zbd-f-name' placeholder='আপনার নাম *' type='text'/>
+      <input autocomplete='tel' id='zbd-f-phone' inputmode='tel' placeholder='মোবাইল নম্বর *' type='tel'/>
+      <textarea autocomplete='street-address' id='zbd-f-address' placeholder='সম্পূর্ণ ঠিকানা (বাসা/হোল্ডিং, রোড, এলাকা, জেলা) *' rows='2'></textarea>
+      <input id='zbd-f-note' placeholder='নোট (যদি থাকে)' type='text'/>
+    </form>
+    <div class='zbd-payline'><span>পেমেন্ট</span><span>ক্যাশ অন ডেলিভারি (COD)</span></div>
+    <div class='zbd-success' id='zbd-success'>ধন্যবাদ! আপনার অর্ডারটি আমাদের কাছে পৌঁছেছে। শীঘ্রই নিশ্চিত করতে যোগাযোগ করা হবে।</div>
+    <button class='zbd-cod' id='zbd-cod-btn'>COD অর্ডার পাঠান</button>
+    <button class='zbd-wa' id='zbd-wa-btn'>অথবা WhatsApp-এ অর্ডার করুন</button>
+  </footer>
+</aside>
+<div class='zbd-toast' id='zbd-toast'></div>
+<script type='text/javascript'>
+//<![CDATA[
+(function(){
+var WA_NUMBER='8801571050562';
+var LS_CART='zbd_cart_v1', LS_WISH='zbd_wish_v1';
+function $(id){return document.getElementById(id);}
+function loadLS(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function saveLS(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+var cart=loadLS(LS_CART,[]), wish=loadLS(LS_WISH,[]);
+var PRODUCTS=[];
+var state={cat:'__all',q:'',sort:'new',wishOnly:false,limit:24};
+function fmt(n){return '\u09f3'+Number(n||0).toLocaleString('en-IN');}
+function deliveryFor(sub){return sub<=0?0:(sub>=1000?0:120);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+var toastTimer=null;
+function toast(msg){var t=$('zbd-toast');if(!t)return;t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('on');},2300);}
+function normPhone(p){p=String(p||'').replace(/[০-৯]/g,function(d){return '০১২৩৪৫৬৭৮৯'.indexOf(d);}).replace(/\D/g,'');if(p.length===13&&p.indexOf('880')===0){p=p.slice(2);}if(p.length===10&&p.charAt(0)==='1'){p='0'+p;}return /^01[3-9]\d{8}$/.test(p)?p:'';}
+function fbqT(ev,params){try{if(window.fbq)fbq('track',ev,params||{});}catch(e){}}
+function refreshBadges(){var c=0;for(var i=0;i<cart.length;i++)c+=cart[i].qty;var cc=$('zbd-cart-count'),wc=$('zbd-wish-count');if(cc)cc.textContent=c;if(wc)wc.textContent=wish.length;}
+function findProduct(url){for(var i=0;i<PRODUCTS.length;i++)if(PRODUCTS[i].url===url)return PRODUCTS[i];return null;}
+function inWish(url){return wish.indexOf(url)>-1;}
+function toggleWish(url){var i=wish.indexOf(url);if(i>-1){wish.splice(i,1);toast('উইশলিস্ট থেকে সরানো হয়েছে');}else{wish.push(url);toast('উইশলিস্টে যোগ হয়েছে');}saveLS(LS_WISH,wish);refreshBadges();}
+function variantText(it){var v='';if(it.size)v+=' (সাইজ: '+it.size+')';if(it.color)v+=' (রং: '+it.color+')';return v;}
+function addToCart(p,size,qty,color){if(!p)return;fbqT('AddToCart',{content_ids:[p.url],content_type:'product',value:p.price*(qty||1),currency:'BDT'});size=size||(p.sizes&&p.sizes.length?p.sizes[0]:'');color=color||(p.colors&&p.colors.length?p.colors[0]:'');for(var i=0;i<cart.length;i++){if(cart[i].url===p.url&&cart[i].size===size&&(cart[i].color||'')===color){cart[i].qty+=qty;saveLS(LS_CART,cart);refreshBadges();renderCart();return;}}cart.push({url:p.url,title:p.title,price:p.price,img:p.img,size:size,color:color,qty:qty});saveLS(LS_CART,cart);refreshBadges();renderCart();}
+function setCartLine(p,size,qty,color){if(!p)return;fbqT('AddToCart',{content_ids:[p.url],content_type:'product',value:p.price*(qty||1),currency:'BDT'});size=size||(p.sizes&&p.sizes.length?p.sizes[0]:'');color=color||(p.colors&&p.colors.length?p.colors[0]:'');for(var i=0;i<cart.length;i++){if(cart[i].url===p.url&&cart[i].size===size&&(cart[i].color||'')===color){cart[i].qty=qty;saveLS(LS_CART,cart);refreshBadges();renderCart();return;}}cart.push({url:p.url,title:p.title,price:p.price,img:p.img,size:size,color:color,qty:qty});saveLS(LS_CART,cart);refreshBadges();renderCart();}
+function parseProduct(entry){
+  var title=entry.title?entry.title.$t:'';
+  var link='';var links=entry.link||[];for(var i=0;i<links.length;i++){if(links[i].rel==='alternate'){link=links[i].href;break;}}
+  var html=entry.content?entry.content.$t:(entry.summary?entry.summary.$t:'');
+  var doc=new DOMParser().parseFromString(html,'text/html');
+  var d=doc.querySelector('.zbd-product');
+  var price=d?parseInt(d.getAttribute('data-price')||'0',10):0;
+  var old=d?parseInt(d.getAttribute('data-oldprice')||'0',10):0;
+  var sizes=[];if(d&&d.getAttribute('data-sizes')){sizes=d.getAttribute('data-sizes').split(',');for(var j=0;j<sizes.length;j++)sizes[j]=sizes[j].trim();sizes=sizes.filter(function(s){return s;});}
+  var colors=[];if(d&&d.getAttribute('data-colors')){colors=d.getAttribute('data-colors').split(',');for(var j2=0;j2<colors.length;j2++)colors[j2]=colors[j2].trim();colors=colors.filter(function(s){return s;});}
+  var sku=d?(d.getAttribute('data-sku')||''):'';
+  var imgEl=doc.querySelector('img');var src=imgEl?(imgEl.getAttribute('src')||''):''; 
+  var cats=[];var cs=entry.category||[];for(var k=0;k<cs.length;k++)cats.push(cs[k].term);
+  return {url:link,title:title,price:price,old:old,sizes:sizes,colors:colors,sku:sku,img:src,cats:cats,published:entry.published?entry.published.$t:''};
+}
+function loadFeed(cb){
+  fetch('/feeds/posts/default?alt=json&max-results=250&orderby=published').then(function(r){return r.json();}).then(function(j){
+    var es=(j.feed&&j.feed.entry)||[];PRODUCTS=[];for(var i=0;i<es.length;i++){var p=parseProduct(es[i]);if(p.price>0&&p.url)PRODUCTS.push(p);}
+    if(cb)cb();
+  }).catch(function(){var l=$('zbd-loading');if(l)l.textContent='পণ্য লোড করা যায়নি। পেজটি আবার লোড করে দেখুন।';});
+}
+function cardHTML(p){
+  var th=p.img;if(th&&th.indexOf('wp-content/uploads')>-1){th=th.replace(/(\.[a-zA-Z]+)$/,'-300x300$1');}   var off=(p.old>p.price)?Math.round((p.old-p.price)*100/p.old):0;
+  return '<article class="zbd-card"><a class="zbd-thumb" href="'+esc(p.url)+'">'
+    +(p.img?'<img alt="'+esc(p.title)+'" loading="lazy" onerror="this.onerror=null;this.src=\''+esc(p.img)+'\'" src="'+esc(th)+'"/>':'')
+    +(off?'<span class="zbd-off">-'+off+'%</span>':'')
+    +'</a><button class="zbd-wish'+(inWish(p.url)?' on':'')+'" data-wish="'+esc(p.url)+'" title="উইশলিস্ট">&#10084;&#65038;</button>'
+    +'<div class="zbd-info"><a href="'+esc(p.url)+'"><h3>'+esc(p.title)+'</h3></a>'
+    +'<div class="zbd-price">'+fmt(p.price)+(p.old>p.price?'<s>'+fmt(p.old)+'</s>':'')+'</div>'
+    +(p.sizes&&p.sizes.length?'<div class="zbd-csizes">সাইজ: '+esc(p.sizes.join(', '))+'</div>':'')
+    +'<button class="zbd-add" data-add="'+esc(p.url)+'">কার্টে যোগ করুন</button></div></article>';
+}
+function currentList(){
+  var list=PRODUCTS.slice();
+  if(state.wishOnly){list=list.filter(function(p){return inWish(p.url);});}
+  if(state.cat!=='__all'){list=list.filter(function(p){return p.cats.indexOf(state.cat)>-1;});}
+  if(state.q){var q=state.q.toLowerCase();var QA={'পাঞ্জাবি':'panjabi','পান্জাবি':'panjabi','টি-শার্ট':'t-shirt','টিশার্ট':'t-shirt','শার্ট':'shirt','পোলো':'polo','প্যান্ট':'pant','জ্যাকেট':'jacket','হুডি':'hoodie','কম্বো':'combo','ঘড়ি':'watch','শীতের':'winter','শীত':'winter','punjabi':'panjabi'};for(var kk in QA){if(q.indexOf(kk)>-1){q=q.split(kk).join(QA[kk]);}}var BN={'Panjabi':'পাঞ্জাবি','Shirt':'শার্ট','T-Shirt':'টি-শার্ট','Polo Shirt':'পোলো','Pant':'প্যান্ট','Combo':'কম্বো','Winter':'শীত হুডি জ্যাকেট'};list=list.filter(function(p){return (p.title+' '+(p.cat||'')+' '+(BN[p.cat]||'')).toLowerCase().indexOf(q)>-1;});}
+  if(state.sort==='low'){list.sort(function(a,b){return a.price-b.price;});}
+  else if(state.sort==='high'){list.sort(function(a,b){return b.price-a.price;});}
+  else{list.sort(function(a,b){return a.published<b.published?-1:1;});}
+  return list;
+}
+function renderGrid(){
+  var grid=$('zbd-grid');if(!grid)return;
+  var list=currentList();
+  grid.innerHTML=list.slice(0,state.limit).map(cardHTML).join('');
+  var r=$('zbd-result');if(r)r.textContent=list.length+'টি পণ্য';
+  var lm=$('zbd-more');if(lm)lm.style.display=(list.length>state.limit)?'block':'none';
+  var nr=$('zbd-noresult');if(nr)nr.style.display=list.length?'none':'block';
+  var ld=$('zbd-loading');if(ld)ld.style.display='none';
+}
+function fillCatSelect(){var sel=$('zbd-cat-select');if(!sel)return;var cats=[];PRODUCTS.forEach(function(p){p.cats.forEach(function(c){if(cats.indexOf(c)===-1)cats.push(c);});});var h='<option value="__all">সব ক্যাটাগরি</option>';cats.forEach(function(c){h+='<option value="'+esc(c)+'">'+esc(c)+'</option>';});sel.innerHTML=h;sel.value=state.cat;}
+function renderChips(){fillCatSelect();
+  var box=$('zbd-chips');if(!box)return;
+  var cats=[];PRODUCTS.forEach(function(p){p.cats.forEach(function(c){if(cats.indexOf(c)===-1)cats.push(c);});});
+  var h='<button class="zbd-chip'+(state.cat==='__all'?' on':'')+'" data-cat="__all">সব পণ্য</button>';
+  cats.forEach(function(c){h+='<button class="zbd-chip'+(state.cat===c?' on':'')+'" data-cat="'+esc(c)+'">'+esc(c)+'</button>';});
+  box.innerHTML=h;
+}
+function renderRelated(self){
+  var box=$('zbd-related'),grid=$('zbd-related-grid');if(!box||!grid||!self)return;
+  var rel=PRODUCTS.filter(function(p){return p.url!==self.url&&p.cats.some(function(c){return self.cats.indexOf(c)>-1;});}).slice(0,4);
+  if(rel.length<4){var extra=PRODUCTS.filter(function(p){return p.url!==self.url&&rel.indexOf(p)===-1;}).slice(0,4-rel.length);rel=rel.concat(extra);}
+  if(!rel.length)return;
+  grid.innerHTML=rel.map(cardHTML).join('');box.style.display='block';
+}
+function renderSections(){
+  var box=$('zbd-sections');if(!box||!PRODUCTS.length)return;
+  var cats=[];PRODUCTS.forEach(function(p){p.cats.forEach(function(c){if(cats.indexOf(c)===-1)cats.push(c);});});
+  var h='<h2 class="zbd-sec-title">ক্যাটাগরি অনুযায়ী কিনুন</h2><div class="zbd-cats">';
+  cats.slice(0,8).forEach(function(c){
+    var first=null,firstImg=null,count=0;PRODUCTS.forEach(function(p){if(p.cats.indexOf(c)>-1){count++;if(!first)first=p;if(!firstImg&&p.img)firstImg=p;}});
+    if(first)h+='<a class="zbd-cat-tile" href="#" data-tile="'+esc(c)+'">'+((firstImg||first).img?'<img alt="'+esc(c)+'" loading="lazy" src="'+esc((firstImg||first).img)+'"/>':'')+'<span>'+esc(c)+'<small>'+count+'টি পণ্য</small></span></a>';
+  });
+  h+='</div>';
+  function row(title,list){
+    if(!list.length)return '';
+    return '<h2 class="zbd-sec-title">'+title+'</h2><div class="zbd-row">'+list.slice(0,8).map(cardHTML).join('')+'</div>';
+  }
+  var newest=PRODUCTS.slice().sort(function(a,b){return a.published<b.published?1:-1;});
+  h+=row('নতুন এসেছে',newest);
+  h+=row('কম্বো অফার',PRODUCTS.filter(function(p){return p.cats.indexOf('Combo')>-1;}));
+  h+=row('শীতের কালেকশন',PRODUCTS.filter(function(p){return p.cats.indexOf('Winter')>-1;}));
+  box.innerHTML=h;
+  box.addEventListener('click',function(e){
+    var t=e.target.closest('[data-tile]');if(!t)return;e.preventDefault();
+    state.cat=t.getAttribute('data-tile');state.wishOnly=false;state.limit=24;renderChips();renderGrid();
+    var g=$('zbd-grid');if(g)window.scrollTo({top:g.offsetTop-140,behavior:'smooth'});
+  });
+}
+function setupHome(){
+  var grid=$('zbd-grid');if(!grid)return;
+  var params=new URLSearchParams(location.search);
+  if(params.get('q')){state.q=params.get('q');var si=$('zbd-search-input');if(si)si.value=state.q;}
+  if(params.get('cat')){state.cat=params.get('cat');}
+  if(params.get('wish')==='1'){state.wishOnly=true;}
+  var m=location.pathname.match(/\/search\/label\/(.+)$/);if(m){try{state.cat=decodeURIComponent(m[1]);}catch(e){}}
+  loadFeed(function(){renderChips();renderGrid();renderSections();});
+  var chips=$('zbd-chips');
+  if(chips){chips.addEventListener('click',function(e){var b=e.target.closest('[data-cat]');if(!b)return;state.cat=b.getAttribute('data-cat');state.wishOnly=false;state.limit=24;renderChips();renderGrid();});}
+  var sort=$('zbd-sort');if(sort){sort.addEventListener('change',function(){state.sort=sort.value;state.limit=24;renderGrid();});
+  var mb=$('zbd-more');if(mb)mb.addEventListener('click',function(){state.limit+=24;renderGrid();});}
+  var form=$('zbd-search-form');
+  if(form){form.addEventListener('submit',function(e){e.preventDefault();state.q=$('zbd-search-input').value.trim();state.wishOnly=false;state.limit=24;renderGrid();window.scrollTo({top:grid.offsetTop-120,behavior:'smooth'});});}
+  grid.addEventListener('click',gridClick);var sec=$('zbd-sections');if(sec&&!sec._bound){sec._bound=true;sec.addEventListener('click',gridClick);}
+}
+function gridClick(e){
+  var w=e.target.closest('[data-wish]');
+  if(w){toggleWish(w.getAttribute('data-wish'));var on=inWish(w.getAttribute('data-wish'));w.classList.toggle('on',on);return;}
+  var a=e.target.closest('[data-add]');
+  if(a){var p=findProduct(a.getAttribute('data-add'));if(p){if((p.sizes&&p.sizes.length)||(p.colors&&p.colors.length)){location.href=p.url;return;}addToCart(p,'',1,'');toast('কার্টে যোগ হয়েছে');openDrawer();}}
+}
+function setupItem(){
+  var slot=$('zbd-buybox-slot');if(!slot)return;
+  var sbp=$('zbd-sb-price'),sbo=$('zbd-sb-order');
+  if(sbo){sbo.addEventListener('click',function(){var on=$('zbd-ordernow');if(on)on.click();});}
+  var wf=document.querySelector('.zbd-wafloat');if(wf&&window.innerWidth<=900)wf.style.bottom='76px';var tb=document.querySelector('.zbd-toast');if(tb&&window.innerWidth<=900)tb.style.bottom='88px';
+  var pbody=document.querySelector('.zbd-post .post-body');var fim=pbody?pbody.querySelector('img'):null;
+  if(fim){var fig=document.createElement('div');fig.className='zbd-heroimg';fim.parentNode.removeChild(fim);fig.appendChild(fim);slot.parentNode.insertBefore(fig,slot);}
+  var d=document.querySelector('.zbd-product');if(!d)return;
+  var price=parseInt(d.getAttribute('data-price')||'0',10);if(!price)return;
+  var old=parseInt(d.getAttribute('data-oldprice')||'0',10);
+  var sizes=[];if(d.getAttribute('data-sizes')){sizes=d.getAttribute('data-sizes').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});}
+  var colors=[];if(d.getAttribute('data-colors')){colors=d.getAttribute('data-colors').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});}
+  var sku=d.getAttribute('data-sku')||'';
+  var title=(document.querySelector('.zbd-post h1')||{}).textContent||document.title;
+  var img=fim?fim.src:'';if(!img){var imgEl=document.querySelector('.post-body img');img=imgEl?imgEl.src:'';}
+  var self={url:location.href.split('?')[0],title:title.trim(),price:price,old:old,sizes:sizes,colors:colors,sku:sku,img:img,cats:[]};
+  var selSize=sizes.length===1?sizes[0]:'',selColor=colors.length?colors[0]:'',qty=1;fbqT('ViewContent',{content_ids:[location.href.split('?')[0]],content_type:'product',content_name:title.trim(),value:price,currency:'BDT'});
+  var off=(old>price)?Math.round((old-price)*100/old):0;
+  var h='<div class="zbd-buybox"><div><span class="zbd-bp">'+fmt(price)+(old>price?'<s>'+fmt(old)+'</s>':'')+'</span>'
+    +(off?'<span class="zbd-save">'+off+'% ছাড়</span>':'')+'</div>';
+  if(sizes.length){h+='<label>সাইজ সিলেক্ট করুন</label><a class="zbd-sg-link" href="/p/size-guide.html" target="_blank">সাইজ গাইড</a><div class="zbd-sizes" id="zbd-sizes">';sizes.forEach(function(s,i){h+='<button class="zbd-size'+(sizes.length===1&&i===0?' on':'')+'" data-size="'+esc(s)+'" type="button">'+esc(s)+'</button>';});h+='</div>';}
+  if(colors.length){h+='<label>রং সিলেক্ট করুন</label><div class="zbd-sizes" id="zbd-colors">';colors.forEach(function(c,i){h+='<button class="zbd-size'+(i===0?' on':'')+'" data-color="'+esc(c)+'" type="button">'+esc(c)+'</button>';});h+='</div>';}
+  h+='<label>পরিমাণ</label><div class="zbd-qtyrow"><span class="zbd-qty"><button id="zbd-qminus" type="button">−</button><span id="zbd-qval">1</span><button id="zbd-qplus" type="button">+</button></span></div>';
+  h+='<div class="zbd-buybtns"><button class="zbd-btn zbd-btn-cart" id="zbd-addcart" type="button">কার্টে যোগ করুন</button><button class="zbd-btn zbd-btn-order" id="zbd-ordernow" type="button">এখনই অর্ডার করুন (COD)</button></div>';
+  h+='<div class="zbd-codline">ক্যাশ অন ডেলিভারি: পণ্য হাতে পেয়ে টাকা পরিশোধ করুন।</div><div class="zbd-trustline">ডেলিভারি ৳120 (৳1,000+ অর্ডারে ফ্রি) · সারা দেশে ৫–৬ কর্মদিবসে ডেলিভারি · পোশাকে ৭ দিনের রিটার্ন · <a href="/p/delivery-and-return.html" target="_blank">বিস্তারিত নিয়ম</a></div></div>';
+  slot.innerHTML=h;
+  if(sbp)sbp.textContent=fmt(price);
+  var sz=$('zbd-sizes');
+  if(sz){sz.addEventListener('click',function(e){var b=e.target.closest('[data-size]');if(!b)return;selSize=b.getAttribute('data-size');var all=sz.querySelectorAll('.zbd-size');for(var i=0;i<all.length;i++)all[i].classList.remove('on');b.classList.add('on');});}
+  var cz=$('zbd-colors');
+  if(cz){cz.addEventListener('click',function(e){var b=e.target.closest('[data-color]');if(!b)return;selColor=b.getAttribute('data-color');var all=cz.querySelectorAll('.zbd-size');for(var i=0;i<all.length;i++)all[i].classList.remove('on');b.classList.add('on');});}
+  $('zbd-qminus').addEventListener('click',function(){if(qty>1)qty--;$('zbd-qval').textContent=qty;});
+  $('zbd-qplus').addEventListener('click',function(){qty++;$('zbd-qval').textContent=qty;});
+  $('zbd-addcart').addEventListener('click',function(){if(sizes.length&&!selSize){toast('আগে আপনার সাইজ বেছে নিন');var szw=$('zbd-sizes');if(szw){szw.scrollIntoView({block:'center',behavior:'smooth'});szw.classList.add('zbd-alert');setTimeout(function(){szw.classList.remove('zbd-alert');},1800);}return;}addToCart(self,selSize,qty,selColor);toast('কার্টে যোগ হয়েছে');});
+  $('zbd-ordernow').addEventListener('click',function(){if(sizes.length&&!selSize){toast('আগে আপনার সাইজ বেছে নিন');var szw=$('zbd-sizes');if(szw){szw.scrollIntoView({block:'center',behavior:'smooth'});szw.classList.add('zbd-alert');setTimeout(function(){szw.classList.remove('zbd-alert');},1800);}return;}setCartLine(self,selSize,qty,selColor);openDrawer();});
+  loadFeed(function(){var p=findProduct(self.url);if(p){self.cats=p.cats;renderRelated(self);}
+    var rg=$('zbd-related-grid');if(rg&&!rg._bound){rg._bound=true;rg.addEventListener('click',gridClick);}});
+}
+function renderCart(){
+  var box=$('zbd-items');if(!box)return;
+  if(!cart.length){box.innerHTML='<div class="zbd-empty">আপনার কার্ট খালি। পণ্য যোগ করুন।</div>';}
+  else{box.innerHTML=cart.map(function(it,i){
+    return '<div class="zbd-item">'+(it.img?'<img alt="" src="'+esc(it.img)+'"/>':'')+'<div class="zbd-it"><h4>'+esc(it.title)+'</h4>'
+    +'<div class="zbd-meta">'+(it.color?'রং: '+esc(it.color)+' | ':'')+(it.size?'সাইজ: '+esc(it.size)+' | ':'')+fmt(it.price)+'</div>'
+    +'<div class="zbd-row"><span class="zbd-qty"><button data-dec="'+i+'" type="button">−</button><span>'+it.qty+'</span><button data-inc="'+i+'" type="button">+</button></span>'
+    +'<b>'+fmt(it.price*it.qty)+'</b></div>'
+    +'<button class="zbd-rm" data-rm="'+i+'" type="button">সরিয়ে ফেলুন</button></div></div>';
+  }).join('');}
+  var total=0;for(var i=0;i<cart.length;i++)total+=cart[i].price*cart[i].qty;
+  var del=deliveryFor(total);
+  var st=$('zbd-subtotal');if(st)st.textContent=fmt(total);
+  var dv=$('zbd-delivery');if(dv)dv.textContent=total>0?(del===0?'ফ্রি':fmt(del)):fmt(120);
+  var t=$('zbd-total');if(t)t.textContent=fmt(total+del);var fb=$('zbd-freebar');if(fb){if(total<=0){fb.innerHTML='';}else if(total<1000){fb.innerHTML='আর '+fmt(1000-total)+' কিনলেই ডেলিভারি ফ্রি<div class="zbd-fb-track"><div class="zbd-fb-fill" style="width:'+Math.round(total/10)+'%"></div></div>';}else{fb.innerHTML='আপনার ডেলিভারি সম্পূর্ণ ফ্রি<div class="zbd-fb-track"><div class="zbd-fb-fill" style="width:100%"></div></div>';}}
+  var btn=$('zbd-wa-btn');if(btn)btn.disabled=!cart.length;
+  var cb2=$('zbd-cod-btn');if(cb2)cb2.disabled=!cart.length;
+}
+function openDrawer(){renderCart();var d=$('zbd-drawer'),o=$('zbd-overlay');if(d)d.classList.add('on');if(o)o.classList.add('on');}
+function closeDrawer(){var d=$('zbd-drawer'),o=$('zbd-overlay');if(d)d.classList.remove('on');if(o)o.classList.remove('on');}
+function checkout(){
+  if(!cart.length){toast('কার্ট খালি');return;}
+  var name=$('zbd-f-name').value.trim(),phone=$('zbd-f-phone').value.trim(),addr=$('zbd-f-address').value.trim(),note=$('zbd-f-note').value.trim();
+  if(!name){toast('আপনার নাম লিখুন');$('zbd-f-name').focus();return;}
+  if(!(phone=normPhone(phone))){toast('সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন');$('zbd-f-phone').focus();return;}
+  if(!addr){toast('সম্পূর্ণ ঠিকানা লিখুন');$('zbd-f-address').focus();return;}
+  var lines=[];lines.push('নতুন অর্ডার (সাঁঝমালা)');lines.push('নাম: '+name);lines.push('মোবাইল: '+phone);lines.push('ঠিকানা: '+addr);
+  if(note)lines.push('নোট: '+note);
+  lines.push('---');
+  var total=0;
+  cart.forEach(function(it,i){var lt=it.price*it.qty;total+=lt;lines.push((i+1)+'. '+it.title+variantText(it)+' x'+it.qty+' = '+fmt(lt));});
+  var del2=deliveryFor(total);
+  lines.push('---');lines.push('পণ্যের মূল্য: '+fmt(total));lines.push('ডেলিভারি চার্জ: '+(del2===0?'ফ্রি':fmt(del2)));lines.push('সর্বমোট: '+fmt(total+del2));lines.push('পেমেন্ট: ক্যাশ অন ডেলিভারি (COD)');
+  fbqT('InitiateCheckout',{content_ids:cart.map(function(it){return it.url;}),num_items:cart.length,value:total+del2,currency:'BDT'});var url='https://wa.me/'+WA_NUMBER+'?text='+encodeURIComponent(lines.join('\n'));
+  window.location.href=url;;
+}
+function readOrderForm(){
+  var name=$('zbd-f-name').value.trim(),phone=$('zbd-f-phone').value.trim(),addr=$('zbd-f-address').value.trim(),note=$('zbd-f-note').value.trim();
+  if(!name){toast('আপনার নাম লিখুন');$('zbd-f-name').focus();return null;}
+  if(!(phone=normPhone(phone))){toast('সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন');$('zbd-f-phone').focus();return null;}
+  if(!addr){toast('সম্পূর্ণ ঠিকানা লিখুন');$('zbd-f-address').focus();return null;}
+  return {name:name,phone:phone,addr:addr,note:note};
+}
+function checkoutCOD(){
+  if(!cart.length){toast('কার্ট খালি');return;}
+  var f=readOrderForm();if(!f)return;
+  var lines=[];var total=0;
+  cart.forEach(function(it,i){var lt=it.price*it.qty;total+=lt;lines.push((i+1)+'. '+it.title+variantText(it)+' x'+it.qty+' = '+fmt(lt));});
+  fbqT('InitiateCheckout',{content_ids:cart.map(function(it){return it.url;}),num_items:cart.length,value:total+deliveryFor(total),currency:'BDT'});var btn=$('zbd-cod-btn');btn.disabled=true;var oldTxt=btn.textContent;btn.textContent='পাঠানো হচ্ছে...';
+  var payload={_subject:'নতুন COD অর্ডার — সাঁঝমালা',_template:'table',_captcha:'false'};
+  payload['নাম']=f.name;payload['মোবাইল']=f.phone;payload['ঠিকানা']=f.addr;
+  if(f.note)payload['নোট']=f.note;
+  var del3=deliveryFor(total);
+  payload['অর্ডার']=lines.join('\n');payload['পণ্যের মূল্য']=fmt(total);payload['ডেলিভারি চার্জ']=del3===0?'ফ্রি':fmt(del3);payload['সর্বমোট']=fmt(total+del3);payload['পেমেন্ট']='ক্যাশ অন ডেলিভারি (COD)';
+  fetch('https://formsubmit.co/ajax/help.sajhmala@gmail.com',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)})
+  .then(function(r){return r.json();})
+  .then(function(j){
+    btn.disabled=false;btn.textContent=oldTxt;
+    if(j&&j.success==='true'||j&&j.success===true){fbqT('Purchase',{content_ids:cart.map(function(it){return it.url;}),num_items:cart.length,value:total+del3,currency:'BDT'});
+      var s=$('zbd-success');if(s)s.classList.add('on');
+      cart=[];saveLS(LS_CART,cart);refreshBadges();renderCart();
+      toast('অর্ডার পাঠানো হয়েছে');
+    }else{
+      toast('এখন পাঠানো যায়নি। WhatsApp-এ অর্ডার করুন অথবা পরে আবার চেষ্টা করুন।');
+    }
+  })
+  .catch(function(){btn.disabled=false;btn.textContent=oldTxt;toast('ইন্টারনেট সমস্যা। আবার চেষ্টা করুন।');});
+}
+function init(){
+  refreshBadges();renderCart();var hd=document.querySelector('.zbd-header');if(hd){var onScr=function(){if(window.innerWidth<=900&&window.scrollY>140){hd.classList.add('zbd-compact');}else{hd.classList.remove('zbd-compact');}};window.addEventListener('scroll',onScr,{passive:true});onScr();var sbb=document.querySelector('.zbd-stickybar');if(sbb&&!document.getElementById('zbd-buybox-slot')){sbb.style.display='none';}var sbt=$('zbd-search-btn');if(sbt){sbt.addEventListener('click',function(){var h2=document.querySelector('.zbd-header');if(h2){h2.classList.remove('zbd-compact');}window.scrollTo(0,0);var si2=$('zbd-search-input');if(si2){setTimeout(function(){si2.focus();},80);}});}}
+  var cb=$('zbd-cart-btn');if(cb)cb.addEventListener('click',openDrawer);
+  var dc=$('zbd-drawer-close');if(dc)dc.addEventListener('click',closeDrawer);
+  var ov=$('zbd-overlay');if(ov)ov.addEventListener('click',closeDrawer);
+  var wb=$('zbd-wish-btn');if(wb)wb.addEventListener('click',function(){if($('zbd-grid')){state.wishOnly=!state.wishOnly;state.cat='__all';renderChips();renderGrid();toast(state.wishOnly?'উইশলিস্ট দেখানো হচ্ছে':'সব পণ্য দেখানো হচ্ছে');}else{location.href='/?wish=1';}});
+  var items=$('zbd-items');
+  if(items){items.addEventListener('click',function(e){
+    var inc=e.target.closest('[data-inc]'),dec=e.target.closest('[data-dec]'),rm=e.target.closest('[data-rm]');
+    if(inc){cart[+inc.getAttribute('data-inc')].qty++;}
+    else if(dec){var i=+dec.getAttribute('data-dec');cart[i].qty--;if(cart[i].qty<1)cart.splice(i,1);}
+    else if(rm){cart.splice(+rm.getAttribute('data-rm'),1);}
+    else return;
+    saveLS(LS_CART,cart);refreshBadges();renderCart();
+  });}
+  var wa=$('zbd-wa-btn');if(wa)wa.addEventListener('click',checkout);
+  var cod=$('zbd-cod-btn');if(cod)cod.addEventListener('click',checkoutCOD);
+  var form=$('zbd-search-form');
+  if(form&&!$('zbd-grid')){form.addEventListener('submit',function(e){e.preventDefault();var q=$('zbd-search-input').value.trim();location.href='/?q='+encodeURIComponent(q);});}
+  var csel=$('zbd-cat-select');if(csel){csel.addEventListener('change',function(){var v=csel.value;var g=$('zbd-grid');if(g){state.cat=v;state.wishOnly=false;state.limit=24;renderChips();renderGrid();window.scrollTo({top:g.offsetTop-120,behavior:'smooth'});}else{if(v&&v!=='__all'){location.href='/?cat='+encodeURIComponent(v);}else{location.href='/';}}});}
+  fillCatSelect();
+  setupHome();setupItem();
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+})();
+/* === Sajhmala v1.7: product image gallery (appended block; runs after the main init so setupItem has already placed the first image in .zbd-heroimg and read its src for the cart; product pages only) === */
+(function(){
+function zbdGalleryInit(){
+  var slot=document.getElementById('zbd-buybox-slot');
+  if(!slot)return;
+  if(!document.querySelector('.zbd-product'))return;
+  var post=document.querySelector('.zbd-post');
+  var pbody=post?post.querySelector('.post-body'):null;
+  if(!pbody)return;
+  var hero=post.querySelector('.zbd-heroimg');
+  var heroImg=hero?hero.querySelector('img'):null;
+  var imgs=[];
+  if(heroImg)imgs.push(heroImg);
+  var bodyImgs=pbody.querySelectorAll('img');
+  for(var i=0;i<bodyImgs.length;i++){if(bodyImgs[i]!==heroImg)imgs.push(bodyImgs[i]);}
+  if(!imgs.length)return;
+  var srcs=[];
+  for(var j=0;j<imgs.length;j++){srcs.push(imgs[j].getAttribute('src')||imgs[j].src);}
+  var gal=document.createElement('div');gal.className='zbd-gallery';
+  var main=document.createElement('div');main.className='zbd-gal-main';
+  var mimg=document.createElement('img');mimg.src=srcs[0];mimg.alt=imgs[0].getAttribute('alt')||'';
+  main.appendChild(mimg);gal.appendChild(main);
+  var thumbs=null;
+  if(srcs.length>1){
+    thumbs=document.createElement('div');thumbs.className='zbd-gal-thumbs';
+    for(var k=0;k<srcs.length;k++){
+      var tb=document.createElement('button');tb.type='button';tb.className='zbd-gal-th'+(k===0?' on':'');tb.setAttribute('data-gi',k);
+      var ti=document.createElement('img');ti.src=srcs[k];ti.alt='';ti.loading='lazy';
+      tb.appendChild(ti);thumbs.appendChild(tb);
+    }
+    gal.appendChild(thumbs);
+  }
+  var anchor=hero||slot;
+  anchor.parentNode.insertBefore(gal,anchor);
+  if(hero)hero.classList.add('zbd-gal-hidden');
+  for(var m=0;m<imgs.length;m++){if(imgs[m]!==heroImg)imgs[m].classList.add('zbd-gal-hidden');}
+  var lb=document.createElement('div');lb.className='zbd-lightbox';
+  var limg=document.createElement('img');limg.alt='';lb.appendChild(limg);
+  var bc=document.createElement('button');bc.type='button';bc.className='zbd-lb-btn zbd-lb-close';bc.textContent='\u00d7';lb.appendChild(bc);
+  var bp=null,bn=null;
+  if(srcs.length>1){
+    bp=document.createElement('button');bp.type='button';bp.className='zbd-lb-btn zbd-lb-prev';bp.textContent='\u2039';lb.appendChild(bp);
+    bn=document.createElement('button');bn.type='button';bn.className='zbd-lb-btn zbd-lb-next';bn.textContent='\u203a';lb.appendChild(bn);
+  }
+  document.body.appendChild(lb);
+  var cur=0;
+  function show(n){
+    if(n<0)n=srcs.length-1;
+    if(n>=srcs.length)n=0;
+    cur=n;
+    mimg.src=srcs[cur];
+    if(lb.classList.contains('on'))limg.src=srcs[cur];
+    if(thumbs){var ths=thumbs.querySelectorAll('.zbd-gal-th');for(var t=0;t<ths.length;t++){ths[t].classList.toggle('on',t===cur);}}
+  }
+  if(thumbs){thumbs.addEventListener('click',function(e){var b=e.target.closest('[data-gi]');if(!b)return;show(parseInt(b.getAttribute('data-gi'),10));});}
+  var tx=null,ty=null,swiped=false;
+  main.addEventListener('touchstart',function(e){var t=e.changedTouches[0];tx=t.clientX;ty=t.clientY;swiped=false;},{passive:true});
+  main.addEventListener('touchend',function(e){
+    if(tx===null)return;
+    var t=e.changedTouches[0];var dx=t.clientX-tx,dy=t.clientY-ty;tx=null;
+    if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)){swiped=true;show(dx<0?cur+1:cur-1);setTimeout(function(){swiped=false;},350);}
+  },{passive:true});
+  function openLb(){limg.src=srcs[cur];lb.classList.add('on');document.documentElement.classList.add('zbd-lb-open');}
+  function closeLb(){lb.classList.remove('on');document.documentElement.classList.remove('zbd-lb-open');}
+  main.addEventListener('click',function(){if(swiped)return;openLb();});
+  bc.addEventListener('click',function(e){e.stopPropagation();closeLb();});
+  if(bp)bp.addEventListener('click',function(e){e.stopPropagation();show(cur-1);});
+  if(bn)bn.addEventListener('click',function(e){e.stopPropagation();show(cur+1);});
+  lb.addEventListener('click',function(e){if(e.target===lb)closeLb();});
+  document.addEventListener('keydown',function(e){
+    if(!lb.classList.contains('on'))return;
+    if(e.key==='Escape')closeLb();
+    else if(e.key==='ArrowLeft')show(cur-1);
+    else if(e.key==='ArrowRight')show(cur+1);
+  });
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',zbdGalleryInit);}else{zbdGalleryInit();}
+})();
+//]]>
+</script>
+<a aria-label='WhatsApp' class='zbd-wafloat' href='https://wa.me/8801571050562' target='_blank'><svg viewBox='0 0 24 24'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'/></svg></a>
+</body>
+</html>
